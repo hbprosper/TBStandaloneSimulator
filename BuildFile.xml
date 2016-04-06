@@ -1,0 +1,15 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/PluginManager"/>
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/MessageLogger"/>
+<use name="FWCore/ServiceRegistry"/>
+<use name="FWCore/Utilities"/>
+<use name="FWCore/Catalog"/>
+<use name="FWCore/Sources"/>
+<use name="FWCore/Common"/>
+<use name="root"/>  
+<export>
+   <lib name="1"/>
+</export>
+
+

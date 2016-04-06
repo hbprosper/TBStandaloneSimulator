@@ -1,0 +1,5 @@
+<use   name="HGCal/TBStandaloneSimulator"/>
+<use   name="HGCal/Geometry"/>
+<lib   name="Graf"/>
+<lib   name="Gpad"/>
+<bin   name="createIDMap" file="createIDMap.cc"></bin>
