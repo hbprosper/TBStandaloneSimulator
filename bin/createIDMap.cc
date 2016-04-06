@@ -44,7 +44,7 @@ int main()
   // make sensor slightly smaller than reality so that 
   // (for now) we ignore incomplete cells around the 
   //edge of sensor
-  SIDE = 0.999*SIDE;
+  SIDE = 0.9999*SIDE;
   double H = SIDE*sqrt(3)/2;  // center to side distance
   double x[7], y[7];
   x[0] = -SIDE/2; y[0] = -H;
@@ -129,7 +129,7 @@ int main()
   fout << record << endl;
 
   HGCalTBCellVertices vertices;
-  int layer = 0;
+  int layer = 1;
   int sensor_iu = 0;
   int sensor_iv = 0;
   int ncells  = 128;
