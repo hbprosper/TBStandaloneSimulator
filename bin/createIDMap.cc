@@ -68,7 +68,7 @@ int main()
   gStyle->SetOptStat("");
 
   hsensor.SetFillStyle(3001);
-  hsensor.SetFillColor(kCyan);
+  hsensor.SetFillColor(kYellow-4);
 
   TCanvas csensor("sensor_cellids", "cellid", 10, 10, 500, 500);
   map->Draw();
@@ -97,8 +97,8 @@ int main()
       double y = (bin->GetYMax()+bin->GetYMin())/2;
       if ( sensor->IsInside(x, y) )
 	{
-	  char record[80];
-	  sprintf(record, "%5d\t%10d\t%10.3f\t%10.3f", ncell, binnumber, x, y);
+	  sprintf(record, "%5d\t%10d\t%10.3f\t%10.3f", 
+		  ncell, binnumber, x, y);
 	  cout << record << endl;
 	  fout << record << endl;
 	  ncell++;
@@ -111,5 +111,56 @@ int main()
 
   csensor.Update();
   csensor.SaveAs(".png");
+
+
+  // ---------------------------------------------
+
+  TCanvas cuv("sensor_u_v", "u, v", 10, 10, 500, 500);
+  map->SetTitle("TB2016 Sensor (u,v) Coordinates");
+  map->Draw();
+  hsensor.Draw("col same");
+  map->Draw("same");
+
+  cout << endl;
+  fout.open("sensor_u_v.txt");
+  sprintf(record, "%5s\t%10s\t%10s\t%10s\t%10s",
+	  "", "u",  "v", "x", "y");
+  cout << record << endl;
+  fout << record << endl;
+
+  HGCalTBCellVertices vertices;
+  int layer = 0;
+  int sensor_iu = 0;
+  int sensor_iv = 0;
+  int ncells  = 128;
+  ncell = 0;
+  for(int iu=-15; iu < 15; iu++)
+    for(int iv=-15; iv < 15; iv++)
+      {
+	pair<double, double> 
+	  xy = vertices.GetCellCentreCoordinates(layer,
+						 sensor_iu, sensor_iv,
+						 iu, iv,
+						 ncells);
+	double x = xy.first;
+	double y = xy.second;
+	if ( x < -10000 ) continue;
+
+	x *= 10; // change to mm
+	y *= 10;
+	sprintf(record, "%5d\t%10d\t%10d\t%10.3f\t%10.3f", 
+		ncell, iu, iv, x, y);
+	cout << record << endl;
+	fout << record << endl;
+	ncell++;
+
+	cuv.cd();
+	sprintf(record, "%d, %d", iu, iv);
+	text.DrawText(x, y, record); 
+      }
+  fout.close();
+  cuv.Update();
+  cuv.SaveAs(".png");
+
   return 0;
 }
