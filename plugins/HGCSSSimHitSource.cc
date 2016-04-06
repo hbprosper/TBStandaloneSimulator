@@ -122,24 +122,38 @@ void HGCSSSimHitSource::produce(edm::Event& event)
       //       2) add noise to time
       float energy = hit.energy();
       float time   = hit.time();
-      //int siLayer  = hit.silayer();
-      //size_t cellid= hit.cellid();
+      // layer: 0, 1, etc. starting with layer facing beam
+      int layer    = hit.layer();
+      // si-layer 0, 1, 2
+      int silayer  = hit.silayer();
+      size_t cellid= hit.cellid();
 
-      // construct a RecHit
+      // construct a RecHit for sim hit in the depletion 
+      // layer only since that is the part of the silicon
+      // that is instrumented.
+      //
+      // we assume that silayer = 2 is always the depletion
+      // layer. this is how it is in the sim. but if the 
+      // adjacent sensors are flipped about y, I would expect
+      // that so too are the depletion layers. CHECK.
+      //
       // -----------------------------------------------
-      // need to map from sim cellID, which is
-      // basically the bin number in a 2-D histogram
-      // with hexagonal bins, to a rec hit detector ID.
-      int layer=0;
-      int sensor_iu=0;
-      int sensor_iv=0;
-      int iu=0;
-      int iv=0;
-      int celltype=0;
-      HGCalTBDetId detid(layer, sensor_iu, sensor_iv, iu, iv, celltype);
+      // map sim cell id to (u,v) coordinates
+      if ( silayer == 2 )
+	{
+	  // offline starts counting at layer 0 or 1?
+	  // assume 1 for now.
+	  layer++;
+	  int sensor_u=0;
+	  int sensor_v=0;
+	  int u=0;
+	  int v=0;
+	  int celltype=0; // calibration cell ids differ depending on layer!
+	  HGCalTBDetId detid(layer, sensor_u, sensor_v, u, v, celltype);
+	  HGCalTBRecHit rechit(detid, energy, time);
 
-      HGCalTBRecHit rechit(detid, energy, time);
-      rechits->push_back(rechit);
+	  rechits->push_back(rechit);
+	}
     }
 
   event.put(genparts, "HGCSSGenParticles");

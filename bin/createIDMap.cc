@@ -28,7 +28,7 @@ namespace {
 int main()
 {
   // create a 2-D histogram with hexagonal bins, a 
-  // subset of which lie with the hexagonal boundary
+  // subset of which lie within the hexagonal boundary
   // that defines a sensor
   HGCSSGeometryConversion geom(MODEL, CELL_SIZE_X);
   geom.initialiseHoneyComb(WIDTH, CELL_SIZE_X);
@@ -41,19 +41,19 @@ int main()
   TH2Poly hsensor;
   hsensor.SetName("hsensor");
   hsensor.SetTitle("sensor");
-  // make sensor slightly smaller than reality so that 
-  // (for now) we ignore incomplete cells around the 
-  //edge of sensor
-  SIDE = 0.9999*SIDE;
-  double H = SIDE*sqrt(3)/2;  // center to side distance
+
+  // make slightly larger than reality, so that we include
+  // mouse bitten cells
+  double S = 1.0001*SIDE;
+  double H = S*sqrt(3)/2;  // center to side distance
   double x[7], y[7];
-  x[0] = -SIDE/2; y[0] = -H;
-  x[1] = -SIDE;   y[1] =  0;
-  x[2] = -SIDE/2; y[2] =  H;
-  x[3] =  SIDE/2; y[3] =  H;
-  x[4] =  SIDE;   y[4] =  0;
-  x[5] =  SIDE/2; y[5] = -H;
-  x[6] = -SIDE/2; y[6] = -H;
+  x[0] = -S/2; y[0] = -H;
+  x[1] = -S;   y[1] =  0;
+  x[2] = -S/2; y[2] =  H;
+  x[3] =  S/2; y[3] =  H;
+  x[4] =  S;   y[4] =  0;
+  x[5] =  S/2; y[5] = -H;
+  x[6] = -S/2; y[6] = -H;
   hsensor.AddBin(7, x, y);
   // get the single hexagonal bin that represents
   // the boundary of sensor
@@ -70,7 +70,11 @@ int main()
   hsensor.SetFillStyle(3001);
   hsensor.SetFillColor(kYellow-4);
 
-  TCanvas csensor("sensor_cellids", "cellid", 10, 10, 500, 500);
+  TCanvas csensor("sensor_cellids", "cellid", 10, 10, 600, 600);
+  map->GetXaxis()->CenterTitle();
+  map->GetXaxis()->SetTitle("#font[12]{x} axis");
+  map->GetYaxis()->CenterTitle();
+  map->GetYaxis()->SetTitle("#font[12]{y} axisa");
   map->Draw();
   hsensor.Draw("col same");
   map->Draw("same");
@@ -95,6 +99,10 @@ int main()
       int binnumber = bin->GetBinNumber();
       double x = (bin->GetXMax()+bin->GetXMin())/2;
       double y = (bin->GetYMax()+bin->GetYMin())/2;
+      csensor.cd();
+      sprintf(record, "%d", binnumber);
+      text.DrawText(x, y, record); 
+
       if ( sensor->IsInside(x, y) )
 	{
 	  sprintf(record, "%5d\t%10d\t%10.3f\t%10.3f", 
@@ -102,9 +110,6 @@ int main()
 	  cout << record << endl;
 	  fout << record << endl;
 	  ncell++;
-	  csensor.cd();
-	  sprintf(record, "%d", binnumber);
-	  text.DrawText(x, y, record); 
 	}	   
     }
   fout.close();
@@ -115,7 +120,7 @@ int main()
 
   // ---------------------------------------------
 
-  TCanvas cuv("sensor_u_v", "u, v", 10, 10, 500, 500);
+  TCanvas cuv("sensor_u_v", "u, v", 10, 10, 600, 600);
   map->SetTitle("TB2016 Sensor (u,v) Coordinates");
   map->Draw();
   hsensor.Draw("col same");
@@ -155,7 +160,7 @@ int main()
 	ncell++;
 
 	cuv.cd();
-	sprintf(record, "%d, %d", iu, iv);
+	sprintf(record, "%d,%d", iu, iv);
 	text.DrawText(x, y, record); 
       }
   fout.close();
