@@ -67,24 +67,31 @@ int main()
   gStyle->SetPalette(1);
   gStyle->SetOptStat("");
 
-  hsensor.SetFillStyle(3001);
-  hsensor.SetFillColor(kYellow-4);
-
   TCanvas csensor("sensor_cellids", "cellid", 10, 10, 600, 600);
   map->GetXaxis()->CenterTitle();
   map->GetXaxis()->SetTitle("#font[12]{x} axis");
   map->GetYaxis()->CenterTitle();
-  map->GetYaxis()->SetTitle("#font[12]{y} axisa");
+  map->GetYaxis()->SetTitle("#font[12]{y} axis");
   map->Draw();
+
+  hsensor.SetMinimum(0.0);
+  hsensor.SetMaximum(1.0);
+  hsensor.SetBinContent(1, 0.72);
   hsensor.Draw("col same");
   map->Draw("same");
 
   ofstream fout("sensor_cellids.txt");
   char record[80];
-  sprintf(record, "%5s\t%10s\t%10s\t%10s",
+  sprintf(record, "%6s\t%6s\t%10s %10s",
 	  "", "cellid", "x", "y");
   cout << record << endl;
   fout << record << endl;
+
+  ofstream sout("sensor_cellid_uv_map.txt");
+  sprintf(record, "%6s\t%6s %6s %6s\t%10s %10s",
+	  "", "cellid", "u", "v", "x", "y");
+  cout << record << endl;
+  sout << record << endl;
 
   // loop
   TList* bins = map->GetBins();
@@ -93,6 +100,16 @@ int main()
   TText text;
   text.SetTextSize(0.02);
   text.SetTextAlign(22);  // centered
+
+  // number of cells in y (either 12 or 11)
+  bool new_column = true;
+  bool odd_column = true;
+  int colnumber = 0;
+  int u = 0;
+  int v = 0;
+  int u_start = 1;
+  int v_start = 8;
+  int number=1;
 
   while ( TH2PolyBin* bin=(TH2PolyBin*)next() )
     {
@@ -103,20 +120,57 @@ int main()
       sprintf(record, "%d", binnumber);
       text.DrawText(x, y, record); 
 
+      // We get the starting
+      // values of (u, v) per column as follows:
+      //   1. every two columns, increment u 
+      //   2. every column, decrement v
+      // Thereafter:
+      //   1. decrement u
+
+      new_column = binnumber == number;
+      if ( new_column )
+	{
+	  // decrement v
+	  v_start--;
+
+	  colnumber++;
+	  if ( colnumber % 2 == 1 ) u_start++;
+
+	  // initialize (u, v) for current column
+	  u = u_start+1;
+	  v = v_start;
+
+	  new_column = false;
+	  if ( odd_column )
+	    number += 12;
+	  else
+	    number += 11;
+	  odd_column = !odd_column;
+	}
+
+      // decrement u
+      u--;
+
       if ( sensor->IsInside(x, y) )
 	{
-	  sprintf(record, "%5d\t%10d\t%10.3f\t%10.3f", 
+	  sprintf(record, "%6d\t%6d\t%10.3f %10.3f", 
 		  ncell, binnumber, x, y);
-	  cout << record << endl;
+	  //cout << record << endl;
 	  fout << record << endl;
+
+	  sprintf(record, "%6d\t%6d %6d %6d\t%10.3f %10.3f", 
+		  ncell, binnumber, u, v, x, y);
+	  cout << record << endl;
+	  sout << record << endl;
+
 	  ncell++;
 	}	   
     }
   fout.close();
+  sout.close();
 
   csensor.Update();
   csensor.SaveAs(".png");
-
 
   // ---------------------------------------------
 
@@ -126,11 +180,11 @@ int main()
   hsensor.Draw("col same");
   map->Draw("same");
 
-  cout << endl;
+  //cout << endl;
   fout.open("sensor_u_v.txt");
-  sprintf(record, "%5s\t%10s\t%10s\t%10s\t%10s",
+  sprintf(record, "%6s\t%6s %6s\t%10s %10s",
 	  "", "u",  "v", "x", "y");
-  cout << record << endl;
+  //cout << record << endl;
   fout << record << endl;
 
   HGCalTBCellVertices vertices;
@@ -153,9 +207,9 @@ int main()
 
 	x *= 10; // change to mm
 	y *= 10;
-	sprintf(record, "%5d\t%10d\t%10d\t%10.3f\t%10.3f", 
+	sprintf(record, "%6d\t%6d %6d\t%10.3f %10.3f", 
 		ncell, iu, iv, x, y);
-	cout << record << endl;
+	//cout << record << endl;
 	fout << record << endl;
 	ncell++;
 
