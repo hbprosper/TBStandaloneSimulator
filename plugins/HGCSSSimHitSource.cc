@@ -19,7 +19,8 @@ HGCSSSimHitSource::HGCSSSimHitSource
      _simhits(0),        // pointer to vector<HGCSSSimHit>
      _samsecs(0),        // pointer to vector<HGCSSSamplingSection>
      _entries(0),        // number of simulated events
-     _entry(0)           // entry number
+     _entry(0),          // entry number,
+     _cellidmap(HGCCellIDUVMap()) // cell id to (u, v) map
 {
   // collections to be produced
   produces<HGCSSGenParticleCollection>("HGCSSGenParticles");
@@ -122,10 +123,13 @@ void HGCSSSimHitSource::produce(edm::Event& event)
       //       2) add noise to time
       float energy = hit.energy();
       float time   = hit.time();
+
       // layer: 0, 1, etc. starting with layer facing beam
       int layer    = hit.layer();
+
       // si-layer 0, 1, 2
       int silayer  = hit.silayer();
+
       size_t cellid= hit.cellid();
 
       // construct a RecHit for sim hit in the depletion 
@@ -141,14 +145,30 @@ void HGCSSSimHitSource::produce(edm::Event& event)
       // map sim cell id to (u,v) coordinates
       if ( silayer == 2 )
 	{
-	  // offline starts counting at layer 0 or 1?
-	  // assume 1 for now.
-	  layer++;
 	  int sensor_u=0;
 	  int sensor_v=0;
-	  int u=0;
-	  int v=0;
-	  int celltype=0; // calibration cell ids differ depending on layer!
+	  std::pair<int, int> uv = _cellidmap(cellid);
+	  int u = uv.first;
+	  int v = uv.second;
+
+	  // try to figure out the cell type (for 128-cell sensor)
+	  int celltype=0; // standard cell
+	  size_t innercell=0, outercell=0;
+	  if ( layer % 2 == 0 )
+	    {
+	      innercell=64; // see sensor_cellid.png
+	      outercell=133;
+	    }
+	  else
+	    {
+	      innercell=133;
+	      outercell=64;
+	    }
+	  if      ( cellid == innercell )
+	    celltype = 1; // inner calibration cell
+	  else if ( cellid == outercell )
+	    celltype = 2; // outer calibration cell
+
 	  HGCalTBDetId detid(layer, sensor_u, sensor_v, u, v, celltype);
 	  HGCalTBRecHit rechit(detid, energy, time);
 

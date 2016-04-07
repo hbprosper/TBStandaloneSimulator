@@ -23,6 +23,7 @@
 
 #include "HGCal/DataFormats/interface/HGCalTBRecHitCollections.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSCollections.h"
+#include "HGCal/TBStandaloneSimulator/interface/HGCCellIDUVMap.h"
 
 class HGCSSSimHitSource : public edm::ProducerSourceFromFiles
 {
@@ -54,6 +55,7 @@ private:
   std::vector<HGCSSSamplingSection>* _samsecs;
   size_t _entries;
   size_t _entry;
+  HGCCellIDUVMap _cellidmap;
 };
 
 

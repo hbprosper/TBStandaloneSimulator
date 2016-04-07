@@ -27,4 +27,6 @@
   <class name="edm::Ref<edm::SortedCollection<HGCSSSamplingSection>"/>
   <class name="edm::RefVector<edm::SortedCollection<HGCSSSamplingSection>"/>
   <class name="edm::RefProd<edm::SortedCollection<HGCSSSamplingSection>"/>
+
+  <class name="HGCCellIDUVMap"/>
 </lcgdict>
