@@ -3,13 +3,13 @@
 /** \class
 
 	\author Harrison B. Prosper 
-	(basically a copy of Shervin´s code)
+	(basically a copy of Shervin´s code with mods)
  */
 #include <stdio.h>
 #include <iostream>
 #include <vector>
 
-#include "TFile.h"
+#include "TChain.h"
 #include "TTree.h"
 
 #include "FWCore/Framework/interface/Event.h"
@@ -43,19 +43,22 @@ private:
 
   virtual void produce(edm::Event & e);
 
+  virtual int cellType(int layer, int cellid);
+
   int _run;
   int _maxevents;
   std::vector<std::string> _filenames;  ///<name of input sim files
 
   /// Sim objects
-  TFile* _file;
-  TTree* _tree;
+  TChain* _chain;
+  TTree*  _tree;
   std::vector<HGCSSGenParticle>*     _genparts;
   std::vector<HGCSSSimHit>*          _simhits;
   std::vector<HGCSSSamplingSection>* _samsecs;
   size_t _entries;
   size_t _entry;
   HGCCellIDUVMap _cellidmap;
+  std::string _outputname;
 };
 
 
