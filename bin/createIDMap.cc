@@ -14,6 +14,7 @@
 
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
 #include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
+#include "HGCal/Geometry/interface/HGCalTBTopology.h"
 
 using namespace std;
 
@@ -33,7 +34,6 @@ int main()
   HGCSSGeometryConversion geom(MODEL, CELL_SIZE_X);
   geom.initialiseHoneyComb(WIDTH, CELL_SIZE_X);
   TH2Poly* map = geom.hexagonMap();
-  map->SetTitle("TB2016 Standalone Simulator Cell IDs");
 
   // create a single hexagonal bin to represent sensor.
   // we shall use this hexagon region to determine which 
@@ -57,8 +57,8 @@ int main()
   hsensor.AddBin(7, x, y);
   // get the single hexagonal bin that represents
   // the boundary of sensor
-  TIter it(hsensor.GetBins());
-  TH2PolyBin* sensor = (TH2PolyBin*)it();
+  //TIter it(hsensor.GetBins());
+  //TH2PolyBin* sensor = (TH2PolyBin*)it();
 
   // loop over bins in 2-D histogram, determine which
   // ones lie within sensor, and write out the bin
@@ -67,11 +67,12 @@ int main()
   gStyle->SetPalette(1);
   gStyle->SetOptStat("");
 
-  TCanvas csensor("sensor_cellids", "cellid", 10, 10, 600, 600);
+  TCanvas csensor("sensor_cellids", "cellid", 600, 600);
   map->GetXaxis()->CenterTitle();
   map->GetXaxis()->SetTitle("#font[12]{x} axis");
   map->GetYaxis()->CenterTitle();
   map->GetYaxis()->SetTitle("#font[12]{y} axis");
+  map->SetTitle("TB2016 Standalone Simulator Cell IDs");
   map->Draw();
 
   hsensor.SetMinimum(0.0);
@@ -80,13 +81,13 @@ int main()
   hsensor.Draw("col same");
   map->Draw("same");
 
-  ofstream fout("sensor_cellids.txt");
-  char record[80];
-  sprintf(record, "%6s\t%6s\t%10s %10s",
-	  "", "cellid", "x", "y");
-  cout << record << endl;
-  fout << record << endl;
+  TCanvas cuv("sensor_u_v", "u, v", 600, 600);
+  map->SetTitle("TB2016 Sensor (u,v) Coordinates");
+  map->Draw();
+  hsensor.Draw("col same");
+  map->Draw("same");
 
+  char record[80];
   ofstream sout("sensor_cellid_uv_map.txt");
   sprintf(record, "%6s\t%6s %6s %6s\t%10s %10s",
 	  "", "cellid", "u", "v", "x", "y");
@@ -111,15 +112,17 @@ int main()
   int v_start = 8;
   int number=1;
 
+  HGCalTBTopology topology;
+  HGCalTBCellVertices vertices;
+
+  // hard code for now
+  int layer = 0;
+  int sensor_iu = 0;
+  int sensor_iv = 0;
+  int ncells  = 128;
+
   while ( TH2PolyBin* bin=(TH2PolyBin*)next() )
     {
-      int binnumber = bin->GetBinNumber();
-      double x = (bin->GetXMax()+bin->GetXMin())/2;
-      double y = (bin->GetYMax()+bin->GetYMin())/2;
-      csensor.cd();
-      sprintf(record, "%d", binnumber);
-      text.DrawText(x, y, record); 
-
       // We get the starting
       // values of (u, v) per column as follows:
       //   1. every two columns, increment u 
@@ -127,6 +130,7 @@ int main()
       // Thereafter:
       //   1. decrement u
 
+      int binnumber = bin->GetBinNumber();
       new_column = binnumber == number;
       if ( new_column )
 	{
@@ -151,73 +155,42 @@ int main()
       // decrement u
       u--;
 
-      if ( sensor->IsInside(x, y) )
-	{
-	  sprintf(record, "%6d\t%6d\t%10.3f %10.3f", 
-		  ncell, binnumber, x, y);
-	  //cout << record << endl;
-	  fout << record << endl;
+      if ( ! topology.iu_iv_valid(layer, 
+				  sensor_iu, 
+				  sensor_iv, 
+				  u, v, 
+				  ncells) ) continue;
 
-	  sprintf(record, "%6d\t%6d %6d %6d\t%10.3f %10.3f", 
-		  ncell, binnumber, u, v, x, y);
-	  cout << record << endl;
-	  sout << record << endl;
+      pair<double, double> pos = vertices.GetCellCentreCoordinates(layer, 
+								   sensor_iu, 
+								   sensor_iv, 
+								   u, v, 
+								   ncells);
+      double x = pos.first;
+      double y = pos.second;
+      x *= 10; // change to mm
+      y *= 10;
 
-	  ncell++;
-	}	   
+      csensor.cd();
+      sprintf(record, "%d", binnumber);
+      text.DrawText(x, y, record); 
+      
+      cuv.cd();
+      sprintf(record, "%d,%d", u, v);
+      text.DrawText(x, y, record); 
+
+      sprintf(record, "%6d\t%6d %6d %6d\t%10.3f %10.3f", 
+	      ncell, binnumber, u, v, x, y);
+      cout << record << endl;
+      sout << record << endl;
+      
+      ncell++;
     }
-  fout.close();
   sout.close();
 
   csensor.Update();
   csensor.SaveAs(".png");
 
-  // ---------------------------------------------
-
-  TCanvas cuv("sensor_u_v", "u, v", 10, 10, 600, 600);
-  map->SetTitle("TB2016 Sensor (u,v) Coordinates");
-  map->Draw();
-  hsensor.Draw("col same");
-  map->Draw("same");
-
-  //cout << endl;
-  fout.open("sensor_u_v.txt");
-  sprintf(record, "%6s\t%6s %6s\t%10s %10s",
-	  "", "u",  "v", "x", "y");
-  //cout << record << endl;
-  fout << record << endl;
-
-  HGCalTBCellVertices vertices;
-  int layer = 1;
-  int sensor_iu = 0;
-  int sensor_iv = 0;
-  int ncells  = 128;
-  ncell = 0;
-  for(int iu=-15; iu < 15; iu++)
-    for(int iv=-15; iv < 15; iv++)
-      {
-	pair<double, double> 
-	  xy = vertices.GetCellCentreCoordinates(layer,
-						 sensor_iu, sensor_iv,
-						 iu, iv,
-						 ncells);
-	double x = xy.first;
-	double y = xy.second;
-	if ( x < -10000 ) continue;
-
-	x *= 10; // change to mm
-	y *= 10;
-	sprintf(record, "%6d\t%6d %6d\t%10.3f %10.3f", 
-		ncell, iu, iv, x, y);
-	//cout << record << endl;
-	fout << record << endl;
-	ncell++;
-
-	cuv.cd();
-	sprintf(record, "%d,%d", iu, iv);
-	text.DrawText(x, y, record); 
-      }
-  fout.close();
   cuv.Update();
   cuv.SaveAs(".png");
 
