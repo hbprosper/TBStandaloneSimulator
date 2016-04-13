@@ -5,11 +5,11 @@
 #include <fstream>
 #include <iostream>
 #include "TSystem.h"
-#include "HGCal/TBStandaloneSimulator/interface/HGCCellIDUVMap.h"
+#include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
 // -------------------------------------------------------------------------
 using namespace std;
 
-HGCCellIDUVMap::HGCCellIDUVMap(string inputFilename)
+HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
     _xymap(map<pair<int, int>, pair<double, double> >())
 {
@@ -22,7 +22,7 @@ HGCCellIDUVMap::HGCCellIDUVMap(string inputFilename)
   ifstream fin(inpfile);
   if ( ! fin.good() )
     {
-      cout << "** HGCCellIDUVMap - unable to open file " 
+      cout << "** HGCCellMap - unable to open file " 
 	   << inpfile << endl;
       exit(0);
     }
@@ -43,13 +43,13 @@ HGCCellIDUVMap::HGCCellIDUVMap(string inputFilename)
     }
 }
 
-HGCCellIDUVMap::~HGCCellIDUVMap() 
+HGCCellMap::~HGCCellMap() 
 {
 }
 
 
 pair<int, int>
-HGCCellIDUVMap::operator()(size_t cellid)
+HGCCellMap::operator()(size_t cellid)
 {
   if ( _uvmap.find(cellid) != _uvmap.end() )
     return _uvmap[cellid];
@@ -58,7 +58,7 @@ HGCCellIDUVMap::operator()(size_t cellid)
 }
 
 pair<double, double>
-HGCCellIDUVMap::operator()(int u, int v)
+HGCCellMap::operator()(int u, int v)
 {
   pair<int, int> key(u,v);
   if ( _xymap.find(key) != _xymap.end() )

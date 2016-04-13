@@ -21,7 +21,7 @@ HGCSSSimHitSource::HGCSSSimHitSource
      _samsecs(0),        // pointer to vector<HGCSSSamplingSection>
      _entries(0),        // number of simulated events
      _entry(0),          // entry number,
-     _cellidmap(HGCCellIDUVMap()), // cell id to (u, v) map
+     _cellmap(HGCCellMap()), // cell id to (u, v) map
      _outputname("simulator")
 {
   // collections to be produced
@@ -142,7 +142,7 @@ void HGCSSSimHitSource::produce(edm::Event& event)
       	  int sensor_v = 0;
       	  // map sim cell id to (u,v) coordinates
       	  size_t cellid = hit.cellid();
-      	  std::pair<int, int> uv = _cellidmap(cellid);
+      	  std::pair<int, int> uv = _cellmap(cellid);
       	  int iu = uv.first;
       	  int iv = uv.second;
       	  // layer: 0, 1, etc. starting with layer facing beam

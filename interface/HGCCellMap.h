@@ -1,5 +1,5 @@
-#ifndef HGCCELLIDUVMAP_H
-#define HGCCELLIDUVMAP_H
+#ifndef HGCCELLMAP_H
+#define HGCCELLMAP_H
 /** \class
 
 	\author Harrison B. Prosper 
@@ -10,12 +10,12 @@
 #include <map>
 #include <string>
 
-class HGCCellIDUVMap
+class HGCCellMap
 {
  public:
-  HGCCellIDUVMap(std::string inputFilename="");
+  HGCCellMap(std::string inputFilename="");
 
-  virtual ~HGCCellIDUVMap(); 
+  virtual ~HGCCellMap(); 
 
   std::pair<int, int> operator()(size_t cellid);
   std::pair<double, double> operator()(int u, int v);

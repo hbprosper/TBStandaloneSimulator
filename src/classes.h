@@ -4,7 +4,7 @@
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSCollections.h"
 #include "HGCal/TBStandaloneSimulator/interface/G4SiHit.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
-#include "HGCal/TBStandaloneSimulator/interface/HGCCellIDUVMap.h"
+#include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
 
 #include "DataFormats/Common/interface/RefProd.h"
 #include "DataFormats/Common/interface/Wrapper.h"
@@ -31,7 +31,7 @@ namespace HGCSS
     edm::SortedCollection<HGCSSSamplingSection> _s3;
     edm::Wrapper<HGCSSSamplingSectionCollection> _w3;
 
-    HGCCellIDUVMap _a4;
+    HGCCellMap _a4;
   };
 }
 
