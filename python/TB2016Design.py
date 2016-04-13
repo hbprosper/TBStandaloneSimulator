@@ -1,4 +1,4 @@
-TB2016Design=\
+Geometry=\
 [[{'layer': '0',
    'material': 'W',
    'side': '71.4598 mm',

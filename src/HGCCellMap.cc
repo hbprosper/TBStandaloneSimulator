@@ -66,3 +66,10 @@ HGCCellMap::operator()(int u, int v)
   else
     return pair<double, double>(-123456, -123456);
 }
+
+bool
+HGCCellMap::valid(int u, int v)
+{
+  pair<int, int> key(u,v);
+  return _xymap.find(key) != _xymap.end();
+}

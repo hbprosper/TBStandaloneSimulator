@@ -19,6 +19,7 @@ class HGCCellMap
 
   std::pair<int, int> operator()(size_t cellid);
   std::pair<double, double> operator()(int u, int v);
+  bool valid(int u, int v);
 
 private:
   std::map<size_t, std::pair<int, int> > _uvmap;
