@@ -28,24 +28,29 @@ HGCCellMap::HGCCellMap(string inputFilename)
     }
   string line;
   getline(fin, line);
-  while ( getline(fin, line) )
-    {
-      int n, cellid, u, v;
-      double x, y;
-      fin >> n >> cellid >> u >> v >> x >> y;
 
+  int posid, cellid, u, v;
+  double x, y;  
+  while (fin >> posid >> cellid >> u >> v >> x >> y)
+    {
       pair<int, int> uv(u, v);
       _uvmap[cellid] = uv;
 
       pair<double, double> xy(x, y);
-      pair<int, int> key(u, v);
-      _xymap[key] = xy;
+      _xymap[uv] = xy;
+
+      pair<pair<int, int>, int> cell(uv, posid);
+      _cells.push_back(cell);
     }
+  fin.close();
 }
 
 HGCCellMap::~HGCCellMap() 
 {
 }
+
+std::vector<pair<pair<int, int>, int> >
+HGCCellMap::cells() { return _cells; }
 
 
 pair<int, int>
@@ -60,7 +65,7 @@ HGCCellMap::operator()(size_t cellid)
 pair<double, double>
 HGCCellMap::operator()(int u, int v)
 {
-  pair<int, int> key(u,v);
+  pair<int, int> key(u, v);
   if ( _xymap.find(key) != _xymap.end() )
     return _xymap[key];
   else
@@ -70,6 +75,6 @@ HGCCellMap::operator()(int u, int v)
 bool
 HGCCellMap::valid(int u, int v)
 {
-  pair<int, int> key(u,v);
+  pair<int, int> key(u, v);
   return _xymap.find(key) != _xymap.end();
 }

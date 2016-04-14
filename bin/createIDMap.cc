@@ -42,9 +42,9 @@ int main()
   hsensor.SetName("hsensor");
   hsensor.SetTitle("sensor");
 
-  // make slightly larger than reality, so that we include
+  // make slightly smaller so that we identify
   // mouse bitten cells
-  double S = 1.0001*SIDE;
+  double S = 0.98*SIDE;
   double H = S*sqrt(3)/2;  // center to side distance
   double x[7], y[7];
   x[0] = -S/2; y[0] = -H;
@@ -55,10 +55,10 @@ int main()
   x[5] =  S/2; y[5] = -H;
   x[6] = -S/2; y[6] = -H;
   hsensor.AddBin(7, x, y);
-  // get the single hexagonal bin that represents
-  // the boundary of sensor
-  //TIter it(hsensor.GetBins());
-  //TH2PolyBin* sensor = (TH2PolyBin*)it();
+  //get the single hexagonal bin that represents
+  //the boundary of sensor
+  TIter it(hsensor.GetBins());
+  TH2PolyBin* sensor = (TH2PolyBin*)it();
 
   // loop over bins in 2-D histogram, determine which
   // ones lie within sensor, and write out the bin
@@ -89,15 +89,14 @@ int main()
 
   char record[80];
   ofstream sout("sensor_cellid_uv_map.txt");
-  sprintf(record, "%6s\t%6s %6s %6s\t%10s %10s",
-	  "", "cellid", "u", "v", "x", "y");
+  sprintf(record, "%6s %6s %6s %6s\t%10s %10s",
+	  "posid", "cellid", "u", "v", "x", "y");
   cout << record << endl;
   sout << record << endl;
 
   // loop
   TList* bins = map->GetBins();
   TIter next(bins);
-  int ncell = 0;
   TText text;
   text.SetTextSize(0.02);
   text.SetTextAlign(22);  // centered
@@ -171,6 +170,36 @@ int main()
       x *= 10; // change to mm
       y *= 10;
 
+      int posid = 0;
+      if ( ! sensor->IsInside(x, y) )
+	{
+	  // boundary cell, determine type
+	  if ( v > 3 )
+	    {
+	      // either lower or upper left
+	      if ( u < -3 )
+		posid = 3; // upper
+	      else
+		posid = 4; // lower
+	    }
+	  else if ( v < -3 )
+	    {
+	      // either lower or upper right
+	      if ( u > 3 )
+		posid = 6; // lower
+	      else
+		posid = 1; // upper
+	    }
+	  else
+	    {
+	      // either lower or upper
+	      if ( u > 0 )
+		posid = 5; // lower
+	      else
+		posid = 2; // upper
+	    }
+	}
+
       csensor.cd();
       sprintf(record, "%d", binnumber);
       text.DrawText(x, y, record); 
@@ -179,12 +208,10 @@ int main()
       sprintf(record, "%d,%d", u, v);
       text.DrawText(x, y, record); 
 
-      sprintf(record, "%6d\t%6d %6d %6d\t%10.3f %10.3f", 
-	      ncell, binnumber, u, v, x, y);
+      sprintf(record, "%6d %6d %6d %6d\t%10.3f %10.3f", 
+	      posid, binnumber, u, v, x, y);
       cout << record << endl;
       sout << record << endl;
-      
-      ncell++;
     }
   sout.close();
 

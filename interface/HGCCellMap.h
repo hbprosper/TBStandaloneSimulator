@@ -9,22 +9,23 @@
  */
 #include <map>
 #include <string>
+#include <vector>
 
 class HGCCellMap
 {
  public:
   HGCCellMap(std::string inputFilename="");
-
   virtual ~HGCCellMap(); 
 
   std::pair<int, int> operator()(size_t cellid);
   std::pair<double, double> operator()(int u, int v);
   bool valid(int u, int v);
+  std::vector<std::pair<std::pair<int, int>, int> > cells();
 
 private:
   std::map<size_t, std::pair<int, int> > _uvmap;
   std::map<std::pair<int, int>, std::pair<double, double> > _xymap;
+  std::vector<std::pair<std::pair<int, int>, int> > _cells;
 };
-
 
 #endif

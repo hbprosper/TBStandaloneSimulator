@@ -33,9 +33,7 @@ class TBFileReader:
         print record
         print "-"*78
         for ii, record in enumerate(records):
-            t = split(record)
-            if t[0] != "Type":   continue
-            if t[1] != "Module": continue
+            if record[:4] != "----":   continue
             records = records[ii+2:]
             break
 

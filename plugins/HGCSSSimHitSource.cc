@@ -3,8 +3,8 @@
 // data format and create HGCalTBRecHits
 // Harrison B. Prosper
 // -------------------------------------------------------------------------
-#include "HGCal/TBStandaloneSimulator/plugins/HGCSSSimHitSource.h"
 #include "FWCore/Framework/interface/InputSourceMacros.h"
+#include "HGCal/TBStandaloneSimulator/plugins/HGCSSSimHitSource.h"
 // -------------------------------------------------------------------------
 
 HGCSSSimHitSource::HGCSSSimHitSource
@@ -159,7 +159,7 @@ void HGCSSSimHitSource::produce(edm::Event& event)
       	  rechits->push_back(rechit);
       	}
     }
-  event.put(rechits,  _outputname);
+  event.put(rechits, _outputname);
 }
 
 void HGCSSSimHitSource::fillDescriptions

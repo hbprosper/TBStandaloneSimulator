@@ -15,15 +15,14 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Sources/interface/ProducerSourceFromFiles.h"
-#include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
-
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/Utilities/interface/Exception.h"
+#include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 
-#include "HGCal/DataFormats/interface/HGCalTBRecHitCollections.h"
-#include "HGCal/TBStandaloneSimulator/interface/HGCSSCollections.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSCollections.h"
+#include "HGCal/DataFormats/interface/HGCalTBRecHitCollections.h"
 
 class HGCSSSimHitSource : public edm::ProducerSourceFromFiles
 {
