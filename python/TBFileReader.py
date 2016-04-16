@@ -14,7 +14,7 @@ FWLiteEnabler.enable()
 
 simplify = re.compile(",edm::Strict.*[>] [>]")
 extract  = re.compile("(?<=[<]).*(?=[>])")
-stripaway= re.compile("HGCSS|HGCal")
+dequote  = re.compile("\"")
 #-----------------------------------------------------------------------------
 class TBFileReader:
     def __init__(self, filename, **optional):
@@ -26,29 +26,20 @@ class TBFileReader:
         self.filename = filename
 
         # create options by scanning file
-        print "scanning file %s ..." % filename
+        print "reading file %s ..." % filename
         os.system("edmDumpEventContent %s >& .dumpevent" % filename)
         records = open(".dumpevent").readlines()
-        record = "%-48s %-10s %-10s %-7s" % ("Type","Module","Label","Process")
-        print record
-        print "-"*78
         for ii, record in enumerate(records):
             if record[:4] != "----":   continue
-            records = records[ii+2:]
+            records = records[ii+1:]
             break
 
         objects = {}
         for ii, record in enumerate(records):
             record = simplify.sub(">", strip(record))
-            record = replace(record, '"', '')
             t = split(record)
-            if len(t) == 3: t.insert(-1, "")
-            record = "%-48s %-10s %-10s %-7s" % tuple(t)
-            print record
-
             name = extract.findall(record)[0]
-            name = stripaway.sub("",name)
-            objects[name] = (t[0], t[1], t[2])
+            objects[name] = (t[0], dequote.sub("",t[1]), dequote.sub("",t[2]))
 
         # create event buffer, get event iterator,
         # and create handles
@@ -56,10 +47,9 @@ class TBFileReader:
         self.iter   = self.events.__iter__()
         self.event  = self.iter.next()
         self.numberOfEvents = self.event.size()
-        print "\nNumber of events: %d" % self.numberOfEvents
+        print "\n  Number of events: %d" % self.numberOfEvents
         self.handles= {}
 
-        print "\nKey/Type List:"
         print "  %-20s %s" % ("Key", "Type")
         print "-"*78
         keys = objects.keys()
@@ -131,21 +121,24 @@ class TBFileReader:
 def main():
     print "\n\t<== TBFileReader ==>\n"
 
-    filename = "test_RecHits_OneLayer_TB.root"
+    filename = "HGCal_digi_32GeV_electrons.root"
 
     reader = TBFileReader(filename)
 
     index = 0
     while reader.read(index):
-        rechits  = reader("TBRecHit")
+        rechits  = reader("HGCSSRecoHit")
+        if rechits == None:
+            sys.exit("\n** cannot find collection\n")
         print "%d\tnumber of rechits: %d" % (index, rechits.size())
         for ii in xrange(rechits.size()):
             energy = rechits[ii].energy()
-            cellid = rechits[ii].id()
-            l = cellid.layer()
-            u = cellid.iu()
-            v = cellid.iv()
-            print "\t%5d: cell(%3d,%3d,%3d): %8.3f GeV" % (ii, l, u ,v, energy)
+            adc    = rechits[ii].adcCounts()
+            x      = rechits[ii].get_x()
+            y      = rechits[ii].get_y()
+            z      = rechits[ii].get_z()
+            print "\t%5d: cell(%6.2f,%6.2f,%6.2f): %8.0f\t%8.3f MeV" % \
+                (ii, x, y, z, adc, energy)
         print
         index += 1
         break
