@@ -1,16 +1,18 @@
 // -------------------------------------------------------------------------
-// Description: map sim cell id to (u, v) coordinates
+// Description: map sim cell id to (u, v) coordinates and (x, y) to (u, v)
 // Created: 06-Apr-2016 Harrison B. Prosper
 // -------------------------------------------------------------------------
 #include <fstream>
 #include <iostream>
 #include "TSystem.h"
+#include "TH2Poly.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
 // -------------------------------------------------------------------------
 using namespace std;
 
 HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
+    _type(map<pair<int, int>, int>()),
     _xymap(map<pair<int, int>, pair<double, double> >())
 {
   if ( inputFilename == "" )
@@ -35,9 +37,18 @@ HGCCellMap::HGCCellMap(string inputFilename)
     {
       pair<int, int> uv(u, v);
       _uvmap[cellid] = uv;
+      _type[uv] = posid;
 
       pair<double, double> xy(x, y);
       _xymap[uv] = xy;
+
+      // assumes that centers given with an
+      // accuracy of at least one decimal
+      // place.
+      int ix = 10*x;
+      int iy = 10*y;
+      pair<int, int> ixiy(ix, iy);
+      _xy2uv[ixiy] = uv;
 
       pair<pair<int, int>, int> cell(uv, posid);
       _cells.push_back(cell);
@@ -72,9 +83,36 @@ HGCCellMap::operator()(int u, int v)
     return pair<double, double>(-123456, -123456);
 }
 
+pair<int, int>
+HGCCellMap::operator()(double x, double y)
+{
+  // assumes that centers given with an
+  // accuracy of at least one decimal
+  // place.
+  int ix = 10*x;
+  int iy = 10*y;
+  pair<int, int> key(ix, iy);
+  if ( _xy2uv.find(key) != _xy2uv.end() )
+    return _xy2uv[key];
+  else
+    return pair<int, int>(-123456, -123456);
+}
+
+
 bool
 HGCCellMap::valid(int u, int v)
 {
   pair<int, int> key(u, v);
   return _xymap.find(key) != _xymap.end();
+}
+
+
+int
+HGCCellMap::type(int u, int v)
+{
+  pair<int, int> key(u, v);
+  if ( _type.find(key) != _type.end() )
+    return _type[key];
+  else
+    return -1;
 }

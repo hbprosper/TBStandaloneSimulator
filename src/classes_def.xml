@@ -1,32 +1,6 @@
 <lcgdict>
-  <class name="HGCSSSimHit"/>
-  <class name="std::vector<HGCSSSimHit>"/>
-  <class name="edm::SortedCollection<HGCSSSimHit>"/>
-  <class name="edm::Wrapper<HGCSSSimHitCollection>"/>
-  <class name="edm::Wrapper<edm::SortedCollection<HGCSSSimHit>"/>
-  <class name="edm::Ref<edm::SortedCollection<HGCSSSimHit>"/>
-  <class name="edm::RefVector<edm::SortedCollection<HGCSSSimHit>"/>
-  <class name="edm::RefProd<edm::SortedCollection<HGCSSSimHit>"/>
-
-
-  <class name="HGCSSGenParticle"/>
-  <class name="std::vector<HGCSSGenParticle>"/>
-  <class name="edm::SortedCollection<HGCSSGenParticle>"/>
-  <class name="edm::Wrapper<HGCSSGenParticleCollection>"/>
-  <class name="edm::Wrapper<edm::SortedCollection<HGCSSGenParticle>"/>
-  <class name="edm::Ref<edm::SortedCollection<HGCSSGenParticle>"/>
-  <class name="edm::RefVector<edm::SortedCollection<HGCSSGenParticle>"/>
-  <class name="edm::RefProd<edm::SortedCollection<HGCSSGenParticle>"/>
-
-
-  <class name="HGCSSSamplingSection"/>
-  <class name="std::vector<HGCSSSamplingSection>"/>
-  <class name="edm::SortedCollection<HGCSSSamplingSection>"/>
-  <class name="edm::Wrapper<HGCSSSamplingSectionCollection>"/>
-  <class name="edm::Wrapper<edm::SortedCollection<HGCSSSamplingSection>"/>
-  <class name="edm::Ref<edm::SortedCollection<HGCSSSamplingSection>"/>
-  <class name="edm::RefVector<edm::SortedCollection<HGCSSSamplingSection>"/>
-  <class name="edm::RefProd<edm::SortedCollection<HGCSSSamplingSection>"/>
-
+  <class name="HGCSSRecoHit"/>
+  <class name="std::vector<HGCSSRecoHit>"/>
+  <class name="edm::Wrapper<std::vector<HGCSSRecoHit> >"/>
   <class name="HGCCellMap"/>
 </lcgdict>

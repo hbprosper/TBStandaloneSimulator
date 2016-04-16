@@ -10,18 +10,18 @@ process = cms.Process(processName)
 
 process.load('FWCore.MessageService.MessageLogger_cfi')
 
-process.source = cms.Source ("HGCSSSimHitSource",
+process.source = cms.Source ("HGCSimDigiSource",
                              runNumber = cms.untracked.int32(101),
                              maxEvents = cms.untracked.int32(-1),
                              fileNames = 
-                             cms.untracked.vstring("file:PFcal.root")
+                             cms.untracked.vstring("file:simdata/digi.root")
                              )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("test_RecHits_OneLayer_TB.root")
+                               ("HGCal_SimDigi_1Layer.root")
                                )
 
 process.outpath = cms.EndPath(process.out)

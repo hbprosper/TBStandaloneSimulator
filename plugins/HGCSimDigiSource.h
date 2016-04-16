@@ -1,9 +1,8 @@
-#ifndef HGCSSSIMHITSOURCE_H
-#define HGCSSSIMHITSOURCE_H
+#ifndef HGCSIMDIGISOURCE_H
+#define HGCSIMDIGISOURCE_H
 /** \class
 
 	\author Harrison B. Prosper 
-	(basically a copy of Shervin´s code with mods)
  */
 #include <stdio.h>
 #include <iostream>
@@ -18,20 +17,20 @@
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/Utilities/interface/Exception.h"
+
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
-
+#include "HGCal/CondObjects/interface/HGCalElectronicsMap.h"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSRecoHit.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
-#include "HGCal/TBStandaloneSimulator/interface/HGCSSCollections.h"
-#include "HGCal/DataFormats/interface/HGCalTBRecHitCollections.h"
 
-class HGCSSSimHitSource : public edm::ProducerSourceFromFiles
+class HGCSimDigiSource : public edm::ProducerSourceFromFiles
 {
  public:
-  explicit HGCSSSimHitSource(const edm::ParameterSet& pset,
+  explicit HGCSimDigiSource(const edm::ParameterSet& pset,
 			     edm::InputSourceDescription 
 			     const& desc);
 
-  virtual ~HGCSSSimHitSource(); 
+  virtual ~HGCSimDigiSource(); 
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -42,8 +41,6 @@ private:
 
   virtual void produce(edm::Event & e);
 
-  virtual int cellType(int layer, int cellid);
-
   int _run;
   int _maxevents;
   std::vector<std::string> _filenames;  ///<name of input sim files
@@ -51,13 +48,11 @@ private:
   /// Sim objects
   TChain* _chain;
   TTree*  _tree;
-  std::vector<HGCSSGenParticle>*     _genparts;
-  std::vector<HGCSSSimHit>*          _simhits;
-  std::vector<HGCSSSamplingSection>* _samsecs;
-  size_t _entries;
-  size_t _entry;
+  size_t  _entries;
+  size_t  _entry;
   HGCCellMap  _cellmap;
-  std::string _outputname;
+  HGCalElectronicsMap _emap;
+  HGCSSRecoHitVec*  _recohits;
 };
 
 
