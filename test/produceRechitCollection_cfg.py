@@ -14,14 +14,14 @@ process.source = cms.Source ("HGCSimDigiSource",
                              runNumber = cms.untracked.int32(101),
                              maxEvents = cms.untracked.int32(-1),
                              fileNames = 
-                             cms.untracked.vstring("file:simdata/digi.root")
+                             cms.untracked.vstring("file:digi_32GeV_electrons.root")
                              )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("HGCal_SimDigi_1Layer.root")
+                               ("HGCal_digi_32GeV_electrons.root")
                                )
 
 process.outpath = cms.EndPath(process.out)
