@@ -5,15 +5,24 @@
 #include <fstream>
 #include <iostream>
 #include "TSystem.h"
-#include "TH2Poly.h"
+#include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
+#include "HGCal/Geometry/interface/HGCalTBTopology.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
 // -------------------------------------------------------------------------
 using namespace std;
+namespace {
+  int MODEL=5;                   // TB2016 model
+  int CELL_SIZE_X=6.496345;      // side length of one pixel (cell)
+  int NCELL=11;
+  double SIDE=NCELL*CELL_SIZE_X; // side length of sensor
+  double WIDTH=2*SIDE;           // width of sensor corner to corner
+};
 
 HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
     _type(map<pair<int, int>, int>()),
-    _xymap(map<pair<int, int>, pair<double, double> >())
+    _xymap(map<pair<int, int>, pair<double, double> >()),
+    _geom(HGCSSGeometryConversion(MODEL, CELL_SIZE_X))
 {
   if ( inputFilename == "" )
     inputFilename=string("$CMSSW_BASE/src/HGCal/TBStandaloneSimulator/data/"
@@ -28,6 +37,10 @@ HGCCellMap::HGCCellMap(string inputFilename)
 	   << inpfile << endl;
       exit(0);
     }
+  // initialize hexagonal map
+  _geom.initialiseHoneyComb(WIDTH, CELL_SIZE_X);
+  _map = _geom.hexagonMap();
+
   string line;
   getline(fin, line);
 
@@ -41,14 +54,6 @@ HGCCellMap::HGCCellMap(string inputFilename)
 
       pair<double, double> xy(x, y);
       _xymap[uv] = xy;
-
-      // assumes that centers given with an
-      // accuracy of at least one decimal
-      // place.
-      int ix = 10*x;
-      int iy = 10*y;
-      pair<int, int> ixiy(ix, iy);
-      _xy2uv[ixiy] = uv;
 
       pair<pair<int, int>, int> cell(uv, posid);
       _cells.push_back(cell);
@@ -84,18 +89,10 @@ HGCCellMap::operator()(int u, int v)
 }
 
 pair<int, int>
-HGCCellMap::operator()(double x, double y)
+HGCCellMap::xy2uv(double x, double y)
 {
-  // assumes that centers given with an
-  // accuracy of at least one decimal
-  // place.
-  int ix = 10*x;
-  int iy = 10*y;
-  pair<int, int> key(ix, iy);
-  if ( _xy2uv.find(key) != _xy2uv.end() )
-    return _xy2uv[key];
-  else
-    return pair<int, int>(-123456, -123456);
+  int cellid = _map->FindBin(x, y);
+  return (*this)(cellid);
 }
 
 

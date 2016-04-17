@@ -10,6 +10,8 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "TH2Poly.h"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
 
 class HGCCellMap
 {
@@ -19,7 +21,7 @@ class HGCCellMap
 
   std::pair<int, int> operator()(size_t cellid);
   std::pair<double, double> operator()(int u, int v);
-  std::pair<int, int> operator()(double x, double y);
+  std::pair<int, int> xy2uv(double x, double y);
   bool valid(int u, int v);
   std::vector<std::pair<std::pair<int, int>, int> > cells();
   int type(int u, int v);
@@ -28,8 +30,12 @@ private:
   std::map<size_t, std::pair<int, int> > _uvmap;
   std::map<std::pair<int, int>, int> _type;
   std::map<std::pair<int, int>, std::pair<double, double> > _xymap;
-  std::map<std::pair<int, int>, std::pair<int, int> > _xy2uv;
+  HGCSSGeometryConversion _geom;
+  TH2Poly* _map;
   std::vector<std::pair<std::pair<int, int>, int> > _cells;
+
+
+
 };
 
 #endif
