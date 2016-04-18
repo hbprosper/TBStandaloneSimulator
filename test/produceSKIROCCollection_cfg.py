@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
-# Read sim objects from root file and store in edm::Events together
-# with HGCalTBRecHits.
+# Read sim "digis" from sim root file and store in them in edm::Events 
+# together with SKIROC2DataFrames made from the sim "digis" (HGCSSRecoHits)
 # ---------------------------------------------------------------------------
 import FWCore.ParameterSet.Config as cms
 

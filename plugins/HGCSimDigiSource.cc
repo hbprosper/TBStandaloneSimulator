@@ -24,28 +24,13 @@ namespace {
     uint16_t TDC;
     bool operator<(Channel& o)
     {
-      int lhs = 100000*skiroc + id;
-      int rhs = 100000*o.skiroc + o.id;
+      // negate skiroc number so that
+      // SKIROC 2 occurs before SKROC 1
+      int lhs = -100000*skiroc + id;
+      int rhs = -100000*o.skiroc + o.id;
       return lhs < rhs; 
     }
   };
-
-size_t gray_to_binary (size_t gray)
-{
-  unsigned int result = gray & (1 << 11);
-  result |= (gray ^ (result >> 1)) & (1 << 10);
-  result |= (gray ^ (result >> 1)) & (1 << 9);
-  result |= (gray ^ (result >> 1)) & (1 << 8);
-  result |= (gray ^ (result >> 1)) & (1 << 7);
-  result |= (gray ^ (result >> 1)) & (1 << 6);
-  result |= (gray ^ (result >> 1)) & (1 << 5);
-  result |= (gray ^ (result >> 1)) & (1 << 4);
-  result |= (gray ^ (result >> 1)) & (1 << 3);
-  result |= (gray ^ (result >> 1)) & (1 << 2);
-  result |= (gray ^ (result >> 1)) & (1 << 1);
-  result |= (gray ^ (result >> 1)) & (1 << 0);
-  return result;
-}
 };
 
 HGCSimDigiSource::HGCSimDigiSource
@@ -173,10 +158,6 @@ void HGCSimDigiSource::produce(edm::Event& event)
       channel.id     = eid >> 
 	HGCalTBElectronicsId::kISkiRocOffset &
 	HGCalTBElectronicsId::kISkiRocMask;
-
-      // negate skiroc number so that skiroc 2 comes 
-      // before skiroc 1
-      channel.skiroc =-channel.skiroc;
       channels.push_back(channel);
     }
 
@@ -188,9 +169,9 @@ void HGCSimDigiSource::produce(edm::Event& event)
       Channel& channel = channels[c];
       digis->addDataFrame(channel.detid);
       digis->backDataFrame().setSample(0, 
-				       gray_to_binary(channel.ADClow  & 0xFFF),
-				       gray_to_binary(channel.ADChigh & 0xFFF), 
-				       channel.TDC);  
+				       channel.ADClow, 
+				       channel.ADChigh,
+				       channel.TDC);
     }
   event.put(digis);
 }
