@@ -13,7 +13,7 @@ Temporary home of test beam stand alone simulator (at least a piece of it!). Thi
 # Running producer
 ```linux
   cd test
-  cmsRun produceRechitCollection_cfg.py
+  cmsRun produceSKIROCCollection_cfg.py
 ```
 This reads the sim file 
 ```linux
