@@ -140,15 +140,21 @@ void HGCSimDigiSource::produce(edm::Event& event)
       int sensor_u = 0;
       int sensor_v = 0;
       // map sim cell center (x,y) to (u,v) coordinates
-      std::pair<int, int> uv = _cellmap(x, y);
+      std::pair<int, int> uv = _cellmap.xy2uv(x, y);
       int u = uv.first;
       int v = uv.second;
+
+      //char record[80];
+      //sprintf(record, "(x, y) = (%6.2f,%6.2f) (u, v) = (%d, %d)", x, y, u, v);
+      //cout << record << endl;
+
       int celltype = _cellmap.type(u, v);
       if ( celltype == 0 )
 	celltype = 1;
       else
 	celltype = 2;
-      channel.detid = HGCalTBDetId(layer, sensor_u, sensor_v, u, v, celltype);
+      // layer count starts at 1
+      channel.detid = HGCalTBDetId(layer+1, sensor_u, sensor_v, u, v, celltype);
 
       // map detector id to electronics id (eid)
       uint32_t eid = _emap.detId2eid(channel.detid);
