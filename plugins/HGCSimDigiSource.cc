@@ -111,7 +111,7 @@ void HGCSimDigiSource::produce(edm::Event& event)
   // auto_ptr own objects they point to and are 
   // automatically deleted when out of scope
 
-  // create skiroc digi objects and put in event
+  // add sim hits to event
   std::auto_ptr<HGCSSRecoHitVec> simreco(new HGCSSRecoHitVec());
   for(size_t c=0; c < _recohits->size(); c++)
     simreco->push_back((*_recohits)[c]);
