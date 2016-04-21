@@ -11,9 +11,10 @@ process = cms.Process(processName)
 process.load('FWCore.MessageService.MessageLogger_cfi')
 
 process.source = cms.Source ("HGCSimDigiSource",
-                             runNumber = cms.untracked.int32(101),
-                             maxEvents = cms.untracked.int32(-1),
-                             fileNames = 
+                             runNumber  = cms.untracked.int32(101),
+                             maxEvents  = cms.untracked.int32(-1),
+                             minADCCount= cms.untracked.int32(1),
+                             fileNames  = 
                              cms.untracked.vstring("file:digi_32GeV_electrons.root")
                              )
 

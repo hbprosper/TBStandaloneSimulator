@@ -37,7 +37,8 @@ HGCSimDigiSource::HGCSimDigiSource
 (const edm::ParameterSet& pset, edm::InputSourceDescription const& desc) 
    : edm::ProducerSourceFromFiles(pset, desc, true),
      _run(pset.getUntrackedParameter<int>("runNumber", 101)),
-     _maxevents(pset.getUntrackedParameter<int>("maxEvents",-1)),
+     _maxevents(pset.getUntrackedParameter<int>("maxEvents", -1)),
+     _minadccount(pset.getUntrackedParameter<int>("minADCCount", 1)),
      _filenames(pset.getUntrackedParameter<std::vector<std::string> >
 		("fileNames")),
      _chain(0),          // chain of files
@@ -128,13 +129,17 @@ void HGCSimDigiSource::produce(edm::Event& event)
       HGCSSRecoHit& hit = (*_recohits)[c];
 
       Channel channel;
+      channel.ADChigh = static_cast<uint16_t>(hit.adcCounts());
+
+      // apply "zero" suppression
+      if ( channel.ADChigh < _minadccount ) continue;
+
+      channel.ADClow = 0;
+      channel.TDC = 0;
+
       int layer = hit.layer();
       double x  = hit.get_x();
       double y  = hit.get_y();
-
-      channel.ADClow  = 0;
-      channel.ADChigh = static_cast<uint16_t>(hit.adcCounts());
-      channel.TDC     = 0;
 
       // create DetId
       int sensor_u = 0;
@@ -189,6 +194,7 @@ void HGCSimDigiSource::fillDescriptions
   desc.setComment("Test Beam 2016");
   desc.addUntracked<int>("runNumber", 101);
   desc.addUntracked<int>("maxEvents", -1);
+  desc.addUntracked<int>("minADCCount", 1);
   desc.addUntracked<std::vector<std::string> >("fileNames");
   descriptions.add("source", desc);
 }

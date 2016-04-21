@@ -27,8 +27,8 @@ class HGCSimDigiSource : public edm::ProducerSourceFromFiles
 {
  public:
   explicit HGCSimDigiSource(const edm::ParameterSet& pset,
-			     edm::InputSourceDescription 
-			     const& desc);
+			    edm::InputSourceDescription 
+			    const& desc);
 
   virtual ~HGCSimDigiSource(); 
 
@@ -43,6 +43,7 @@ private:
 
   int _run;
   int _maxevents;
+  int _minadccount;
   std::vector<std::string> _filenames;  ///<name of input sim files
 
   /// Sim objects

@@ -122,23 +122,39 @@ def main():
     print "\n\t<== TBFileReader ==>\n"
 
     filename = "HGCal_digi_32GeV_electrons.root"
+    cellmap  = HGCCellMap()
+    reader   = TBFileReader( filename)
+    index    = 0
 
-    reader = TBFileReader(filename)
-
-    index = 0
     while reader.read(index):
-        rechits  = reader("HGCSSRecoHit")
-        if rechits == None:
-            sys.exit("\n** cannot find collection\n")
-        print "%d\tnumber of rechits: %d" % (index, rechits.size())
+        rechits = reader("HGCSSRecoHit")
+        skiroc2 = reader("SKIROC2DataFrame")
+        if rechits == None: sys.exit("\n** cannot find rec hits collection\n")
+        if skiroc2 == None: sys.exit("\n** cannot find skiroc collection\n")
+        print "%d\tnumber of rechits:     %d" % (index, rechits.size())
+        print "%d\tnumber of skiroc hits: %d" % (index, skiroc2.size())
         for ii in xrange(rechits.size()):
+            digi   = SKIROC2DataFrame(skiroc2[ii])
+            nsamples = digi.samples()
             energy = rechits[ii].energy()
             adc    = rechits[ii].adcCounts()
             x      = rechits[ii].get_x()
             y      = rechits[ii].get_y()
             z      = rechits[ii].get_z()
-            print "\t%5d: cell(%6.2f,%6.2f,%6.2f): %8.0f\t%8.3f MeV" % \
-                (ii, x, y, z, adc, energy)
+            print "\t%5d: cell(%6.2f,%6.2f,%6.2f): ADC = %d" % \
+                (ii, x, y, z, int(adc))
+
+            detid = digi.detid()
+            iu = detid.iu()
+            iv = detid.iv()
+            xy = cellmap(iu, iv)
+            xx = xy.first
+            yy = xy.second
+            for jj in xrange(nsamples):
+                adc = digi[jj].adcHigh()
+                print "\t%5d: cell(%6.2f,%6.2f):        ADC = %d" % \
+                    (jj, x, y, adc)
+            print
         print
         index += 1
         break

@@ -5,24 +5,27 @@
 #include <fstream>
 #include <iostream>
 #include "TSystem.h"
+#include "HGCal/Geometry/interface/HGCalTBCellParameters.h"
 #include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
 #include "HGCal/Geometry/interface/HGCalTBTopology.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
 // -------------------------------------------------------------------------
 using namespace std;
 namespace {
-  int MODEL=5;                   // TB2016 model
-  int CELL_SIZE_X=6.496345;      // side length of one pixel (cell)
-  int NCELL=11;
-  double SIDE=NCELL*CELL_SIZE_X; // side length of sensor
-  double WIDTH=2*SIDE;           // width of sensor corner to corner
+  int MODEL=5;                 // TB2016 model
+  int NCELL=11;                // number of pixels from side to side in sensor
+  // side length of one pixel (cell) in mm
+  double CELL_SIDE=10*HGCAL_TB_CELL::FULL_CELL_SIDE; 
+  // side length of sensor     
+  double SENSOR_SIDE=NCELL*CELL_SIDE; 
+  double WIDTH=2*SENSOR_SIDE;  // width of sensor corner to corner
 };
 
 HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
     _type(map<pair<int, int>, int>()),
     _xymap(map<pair<int, int>, pair<double, double> >()),
-    _geom(HGCSSGeometryConversion(MODEL, CELL_SIZE_X))
+    _geom(HGCSSGeometryConversion(MODEL, CELL_SIDE))
 {
   if ( inputFilename == "" )
     inputFilename=string("$CMSSW_BASE/src/HGCal/TBStandaloneSimulator/data/"
@@ -38,7 +41,7 @@ HGCCellMap::HGCCellMap(string inputFilename)
       exit(0);
     }
   // initialize hexagonal map
-  _geom.initialiseHoneyComb(WIDTH, CELL_SIZE_X);
+  _geom.initialiseHoneyComb(WIDTH, CELL_SIDE);
   _map = _geom.hexagonMap();
 
   string line;
@@ -91,7 +94,7 @@ HGCCellMap::operator()(int u, int v)
 pair<int, int>
 HGCCellMap::xy2uv(double x, double y)
 {
-  int cellid = _map->FindBin(x, y);
+  size_t cellid = _map->FindBin(x, y);
   return (*this)(cellid);
 }
 

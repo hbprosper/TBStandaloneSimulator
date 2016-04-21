@@ -13,17 +13,20 @@
 #include "TText.h"
 
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
+#include "HGCal/Geometry/interface/HGCalTBCellParameters.h"
 #include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
 #include "HGCal/Geometry/interface/HGCalTBTopology.h"
 
 using namespace std;
 
 namespace {
-  int MODEL=5;                   // TB2016 model
-  int NCELL=11;                  // number of pixels from side to side in sensor
-  int CELL_SIZE_X=6.496345;      // side length of one pixel (cell)
-  double SIDE=NCELL*CELL_SIZE_X; // side length of sensor
-  double WIDTH=2*SIDE;           // width of sensor corner to corner
+  int MODEL=5;                 // TB2016 model
+  int NCELL=11;                // number of pixels from side to side in sensor
+  // side length of one pixel (cell) in mm
+  double CELL_SIDE=10*HGCAL_TB_CELL::FULL_CELL_SIDE; 
+  // side length of sensor     
+  double SENSOR_SIDE=NCELL*CELL_SIDE; 
+  double WIDTH=2*SENSOR_SIDE;  // width of sensor corner to corner
 };
 
 int main()
@@ -31,8 +34,8 @@ int main()
   // create a 2-D histogram with hexagonal bins, a 
   // subset of which lie within the hexagonal boundary
   // that defines a sensor
-  HGCSSGeometryConversion geom(MODEL, CELL_SIZE_X);
-  geom.initialiseHoneyComb(WIDTH, CELL_SIZE_X);
+  HGCSSGeometryConversion geom(MODEL, CELL_SIDE);
+  geom.initialiseHoneyComb(WIDTH, CELL_SIDE);
   TH2Poly* map = geom.hexagonMap();
 
   // create a single hexagonal bin to represent sensor.
@@ -44,7 +47,7 @@ int main()
 
   // make slightly smaller so that we identify
   // mouse bitten cells
-  double S = 0.98*SIDE;
+  double S = 0.98*SENSOR_SIDE;
   double H = S*sqrt(3)/2;  // center to side distance
   double x[7], y[7];
   x[0] = -S/2; y[0] = -H;
@@ -55,6 +58,7 @@ int main()
   x[5] =  S/2; y[5] = -H;
   x[6] = -S/2; y[6] = -H;
   hsensor.AddBin(7, x, y);
+
   //get the single hexagonal bin that represents
   //the boundary of sensor
   TIter it(hsensor.GetBins());
@@ -75,16 +79,40 @@ int main()
   map->SetTitle("TB2016 Standalone Simulator Cell IDs");
   map->Draw();
 
-  hsensor.SetMinimum(0.0);
-  hsensor.SetMaximum(1.0);
-  hsensor.SetBinContent(1, 0.72);
-  hsensor.Draw("col same");
+  // make a sensor with the correct size (for plotting)
+  TH2Poly hsensortrue;
+  hsensortrue.SetName("hsensortrue");
+  hsensortrue.SetTitle("sensortrue");
+  hsensortrue.GetXaxis()->CenterTitle();
+  hsensortrue.GetXaxis()->SetTitle("#font[12]{x} axis");
+  hsensortrue.GetYaxis()->CenterTitle();
+  hsensortrue.GetYaxis()->SetTitle("#font[12]{y} axis");
+  hsensortrue.SetTitle("TB2016 Standalone Simulator Cell IDs");
+
+  S = SENSOR_SIDE;
+  H = S*sqrt(3)/2;  // center to side distance
+  x[0] = -S/2; y[0] = -H;
+  x[1] = -S;   y[1] =  0;
+  x[2] = -S/2; y[2] =  H;
+  x[3] =  S/2; y[3] =  H;
+  x[4] =  S;   y[4] =  0;
+  x[5] =  S/2; y[5] = -H;
+  x[6] = -S/2; y[6] = -H;
+  hsensortrue.AddBin(7, x, y);
+  hsensortrue.SetMinimum(0.0);
+  hsensortrue.SetMaximum(1.0);
+  hsensortrue.Draw();
+  hsensortrue.SetBinContent(1, 0.7);
+  hsensortrue.Draw("col same");
   map->Draw("same");
 
+  // (u, v) plot
   TCanvas cuv("sensor_u_v", "u, v", 600, 600);
   map->SetTitle("TB2016 Sensor (u,v) Coordinates");
-  map->Draw();
-  hsensor.Draw("col same");
+  hsensortrue.SetBinContent(1, 0.0);
+  hsensortrue.Draw();
+  hsensortrue.SetBinContent(1, 0.7);
+  hsensortrue.Draw("col same");
   map->Draw("same");
 
   char record[80];
