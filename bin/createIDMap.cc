@@ -76,19 +76,10 @@ int main()
   map->GetXaxis()->SetTitle("#font[12]{x} axis");
   map->GetYaxis()->CenterTitle();
   map->GetYaxis()->SetTitle("#font[12]{y} axis");
-  map->SetTitle("TB2016 Standalone Simulator Cell IDs");
-  map->Draw();
 
   // make a sensor with the correct size (for plotting)
   TH2Poly hsensortrue;
   hsensortrue.SetName("hsensortrue");
-  hsensortrue.SetTitle("sensortrue");
-  hsensortrue.GetXaxis()->CenterTitle();
-  hsensortrue.GetXaxis()->SetTitle("#font[12]{x} axis");
-  hsensortrue.GetYaxis()->CenterTitle();
-  hsensortrue.GetYaxis()->SetTitle("#font[12]{y} axis");
-  hsensortrue.SetTitle("TB2016 Standalone Simulator Cell IDs");
-
   S = SENSOR_SIDE;
   H = S*sqrt(3)/2;  // center to side distance
   x[0] = -S/2; y[0] = -H;
@@ -101,17 +92,21 @@ int main()
   hsensortrue.AddBin(7, x, y);
   hsensortrue.SetMinimum(0.0);
   hsensortrue.SetMaximum(1.0);
-  hsensortrue.Draw();
   hsensortrue.SetBinContent(1, 0.7);
+
+  csensor.cd();
+  map->Draw();
   hsensortrue.Draw("col same");
   map->Draw("same");
 
   // (u, v) plot
   TCanvas cuv("sensor_u_v", "u, v", 600, 600);
-  map->SetTitle("TB2016 Sensor (u,v) Coordinates");
   hsensortrue.SetBinContent(1, 0.0);
   hsensortrue.Draw();
   hsensortrue.SetBinContent(1, 0.7);
+
+  cuv.cd();
+  map->Draw();
   hsensortrue.Draw("col same");
   map->Draw("same");
 
@@ -243,9 +238,11 @@ int main()
     }
   sout.close();
 
+  map->SetTitle("TB2016 Standalone Simulator Cell IDs");
   csensor.Update();
   csensor.SaveAs(".png");
 
+  map->SetTitle("TB2016 Sensor (u,v) Coordinates");
   cuv.Update();
   cuv.SaveAs(".png");
 
