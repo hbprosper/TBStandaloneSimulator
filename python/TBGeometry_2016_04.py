@@ -1,17 +1,20 @@
-#---------------------------------------------------------------------------
-Components = {'W21': {'shape': 'hexagon',
+#--------------------------------------------------------------------------
+# List all components from which geometry is built.
+# (x, y, z) is the location of the center of the component
+#--------------------------------------------------------------------------
+Components = {'W21': {'shape': 'square',
                       'material': 'W',
                       'length units': 'mm',
-                      'side': 71.4598,
+                      'side': 72.0,
                       'thickness': 2.1,
                       'x': 0.0,
                       'y': 0.0,
                       'z': 0.0},
               
-              'W42':  {'shape': 'hexagon',
+              'W42':  {'shape': 'square',
                        'material': 'W',
                        'length units': 'mm',
-                       'side': 71.4598,
+                       'side': 72.0,
                        'thickness': 4.2,
                        'x': 0.0,
                        'y': 0.0,
@@ -35,7 +38,7 @@ Components = {'W21': {'shape': 'hexagon',
                         'y': 0.0,
                         'z': 0.0},
 
-              'Air30': {'shape': 'hexagon',
+              'Air30': {'shape': 'square',
                         'material': 'Air',
                         'length units': 'mm',
                         'side': 71.4598,
@@ -44,7 +47,7 @@ Components = {'W21': {'shape': 'hexagon',
                         'y': 0.0,
                         'z': 0.0},
 
-              'Air60': {'shape': 'hexagon',
+              'Air60': {'shape': 'square',
                         'material': 'Air',
                         'length units': 'mm',
                         'side': 71.4598,
@@ -89,18 +92,24 @@ Components = {'W21': {'shape': 'hexagon',
                           'Si020',
                           'Si012']              
               }
-#---------------------------------------------------------------------------
+#--------------------------------------------------------------------------
+# Geometry is specified as an ordered list of components
+#--------------------------------------------------------------------------
 Geometry=['W42',
           'Air60',
+
           'W42',
           'Air60',
+
           'W42',
           'Air60',
 
           'W21',
           'Air60',
+
           'W21',
           'Air60',
+
           'W21',
           'Air30',
 
