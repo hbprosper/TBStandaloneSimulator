@@ -10,19 +10,23 @@ process = cms.Process(processName)
 
 process.load('FWCore.MessageService.MessageLogger_cfi')
 
+# read file names from filelist
+from string import strip
+filelist = map(lambda x: "file:%s" % x, 
+              map(strip, open("filelist").readlines()))
+
 process.source = cms.Source ("HGCSimDigiSource",
                              runNumber  = cms.untracked.int32(101),
                              maxEvents  = cms.untracked.int32(-1),
                              minADCCount= cms.untracked.int32(1),
-                             fileNames  = 
-                             cms.untracked.vstring("file:digi_32GeV_electrons.root")
+                             fileNames  = cms.untracked.vstring(filelist)
                              )
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("HGCal_digi_32GeV_electrons.root")
+                               ("HGCal_digi_120GeV_protons.root")
                                )
 
 process.outpath = cms.EndPath(process.out)
