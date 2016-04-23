@@ -26,7 +26,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("HGCal_digi_120GeV_protons.root")
+                               ("HGCal_digi_32GeV_electrons.root")
                                )
 
 process.outpath = cms.EndPath(process.out)
