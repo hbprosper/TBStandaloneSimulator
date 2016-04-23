@@ -25,7 +25,7 @@ namespace {
     bool operator<(Channel& o)
     {
       // negate skiroc number so that
-      // SKIROC 2 occurs before SKROC 1
+      // SKIROC 2 occurs before SKIROC 1
       int lhs = -100000*skiroc + id;
       int rhs = -100000*o.skiroc + o.id;
       return lhs < rhs; 
@@ -49,11 +49,11 @@ HGCSimDigiSource::HGCSimDigiSource
      _emap(HGCalElectronicsMap()),
      _recohits(0)
 {
-  // collection to be produced
+  // collections to be produced
   produces<SKIROC2DigiCollection>();
   produces<HGCSSRecoHitVec>();
 
-  // create a possible chain of files
+  // create a chain of files
   _chain = new TChain("RecoTree");
   if ( !_chain )
     throw cms::Exception("ChainCreationFailed", "chain: RecoTree");
