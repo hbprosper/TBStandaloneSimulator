@@ -1,27 +1,37 @@
 // -------------------------------------------------------------------------
 // Description: convert output of standalone simulator to TB 2016 test beam
 // data format: SKIROC2DataFrames
-// Harrison B. Prosper
+// Created  April 2016 Harrison B. Prosper
+// Updated: 04-23-2016 HBP use HGCCellMap to get mapping from (u, v) to
+//                     (skiroc, channel id)
 // -------------------------------------------------------------------------
 #include <iostream>
 #include <algorithm>
 #include "FWCore/Framework/interface/InputSourceMacros.h"
 #include "HGCal/TBStandaloneSimulator/plugins/HGCSimDigiSource.h"
-#include "HGCal/DataFormats/interface/HGCalTBElectronicsId.h"
-#include "HGCal/CondObjects/interface/HGCalCondObjectTextIO.h"
 #include "HGCal/DataFormats/interface/HGCalTBDataFrameContainers.h"
 #include "HGCal/DataFormats/interface/SKIROCParameters.h"
+#include "HGCal/DataFormats/interface/HGCalTBElectronicsId.h"
+#include "HGCal/DataFormats/interface/HGCalTBDetId.h"
 // -------------------------------------------------------------------------
 using namespace std;
 namespace {
   struct Channel
   {
-    int skiroc;
-    int id;
-    DetId detid;
+    int skiroc;      // SKIROC number
+    int id;          // channel id
+    DetId detid;     // detector id
     uint16_t ADClow;
     uint16_t ADChigh;
     uint16_t TDC;
+    int layer;
+    int sensor_u;
+    int sensor_v;
+    int u;
+    int v;
+    int type;
+    double x;
+    double y;
     bool operator<(Channel& o)
     {
       // negate skiroc number so that
@@ -137,38 +147,34 @@ void HGCSimDigiSource::produce(edm::Event& event)
       channel.ADClow = 0;
       channel.TDC = 0;
 
-      int layer = hit.layer();
-      double x  = hit.get_x();
-      double y  = hit.get_y();
+      // layer count starts at 1 in offline
+      // and at zero in sim!
+      channel.layer = hit.layer() + 1;
+      channel.x  = hit.get_x();
+      channel.y  = hit.get_y();
 
       // create DetId
-      int sensor_u = 0;
-      int sensor_v = 0;
+      channel.sensor_u = 0;
+      channel.sensor_v = 0;
       // map sim cell center (x,y) to (u,v) coordinates
-      std::pair<int, int> uv = _cellmap.xy2uv(x, y);
-      int u = uv.first;
-      int v = uv.second;
+      std::pair<int, int> uv = _cellmap.xy2uv(channel.x, channel.y);
+      channel.u = uv.first;
+      channel.v = uv.second;
 
-      //char record[80];
-      //sprintf(record, "(x, y) = (%6.2f,%6.2f) (u, v) = (%d, %d)", x, y, u, v);
-      //cout << record << endl;
-
-      int celltype = _cellmap.type(u, v);
-      if ( celltype == 0 )
-	celltype = 1;
+      channel.type = _cellmap.type(channel.u, channel.v);
+      if ( channel.type == 0 )
+	channel.type = 1;
       else
-	celltype = 2;
-      // layer count starts at 1
-      channel.detid = HGCalTBDetId(layer+1, sensor_u, sensor_v, u, v, celltype);
+	channel.type = 2;
+      channel.detid = HGCalTBDetId(channel.layer, 
+				   channel.sensor_u, channel.sensor_v, 
+				   channel.u, channel.v, 
+				   channel.type);
 
-      // map detector id to electronics id (eid)
-      uint32_t eid = _emap.detId2eid(channel.detid);
-
-      // map eid to SKIROC and channel id numbers
-      channel.skiroc = eid & HGCalTBElectronicsId::kIChanMask; 
-      channel.id     = eid >> 
-	HGCalTBElectronicsId::kISkiRocOffset &
-	HGCalTBElectronicsId::kISkiRocMask;
+      // map to SKIROC and channel id numbers
+      pair<int, int> eid = _cellmap.uv2eid(channel.u, channel.v);
+      channel.skiroc = eid.first;
+      channel.id     = eid.second;
       channels.push_back(channel);
     }
 
@@ -183,6 +189,16 @@ void HGCSimDigiSource::produce(edm::Event& event)
 				       channel.ADClow, 
 				       channel.ADChigh,
 				       channel.TDC);
+      if ( _entry < 2 )
+	{
+	  char record[80];
+	  sprintf(record, 
+		  "(SKIROC,channel)=(%2d,%2d)"
+		  " (u,v)=(%2d,%2d), (x,y)=(%6.2f,%6.2f)",
+		  channel.skiroc, channel.id, 
+		  channel.u, channel.v, channel.x, channel.y);
+	  cout << record << endl;
+	}
     }
   event.put(digis);
 }

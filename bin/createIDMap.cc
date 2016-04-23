@@ -1,10 +1,21 @@
 // --------------------------------------------------------------------------
 // File: createIDMap
+//
+// Description: consolidate various mappings into a single text file
+// containing 
+// sim cell id (cellid), (u, v), (x, y), position id (posid), 
+// SKIROC number (skiroc), channel number (channel). The text
+// HGCal/TBStandaloneSimulator/data/sensor_cellid_uv_map.txt
+// is read by HGCCellMap, which provides between various numbers.
+//
+// Created April 2016 Harrison B. Prosper 
 // --------------------------------------------------------------------------
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <map>
 
+#include "TSystem.h"
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TH2Poly.h"
@@ -12,11 +23,16 @@
 #include "TList.h"
 #include "TText.h"
 
-#include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
+#include "HGCal/CondObjects/interface/HGCalElectronicsMap.h"
+#include "HGCal/CondObjects/interface/HGCalCondObjectTextIO.h"
+#include "HGCal/DataFormats/interface/SKIROCParameters.h"
+#include "HGCal/DataFormats/interface/HGCalTBElectronicsId.h"
+#include "HGCal/DataFormats/interface/HGCalTBDetId.h"
 #include "HGCal/Geometry/interface/HGCalTBCellParameters.h"
 #include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
 #include "HGCal/Geometry/interface/HGCalTBTopology.h"
-
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
+// --------------------------------------------------------------------------
 using namespace std;
 
 namespace {
@@ -28,19 +44,66 @@ namespace {
   double SENSOR_SIDE=NCELL*CELL_SIDE; 
   double WIDTH=2*SENSOR_SIDE;  // width of sensor corner to corner
 };
-
-int main()
+// --------------------------------------------------------------------------
+int main(int argc, char **argv)
 {
+  // electronics id to (u, v) mapping file 
+  string electronicsmapfile("map_FNAL.txt");
+  if ( argc > 1 )
+    electronicsmapfile = string(argv[1]);
+    
+  cout << endl
+       <<  "=> Using (u, v) to (skiroc, channel) map file " 
+       << endl
+       <<  "   HGCal/CondObjects/data/"
+       << electronicsmapfile 
+       << endl << endl;
+
+  // ----------------------------------------------------------
+  // load mapping between (layer, u, v) tp (SKIROC, CHANNEL)
+  // ----------------------------------------------------------
+  char mfile[1024];
+  sprintf(mfile, "$CMSSW_BASE/src/HGCal/CondObjects/data/%s", 
+	  electronicsmapfile.c_str());
+  sprintf(mfile, "%s", gSystem->ExpandPathName(mfile));
+  ifstream mapin(mfile);
+  if ( ! mapin.good() )
+    {
+      cout <<  "*** cannot open file " << mfile << endl;
+      exit(0);
+    }
+  // dismiss header
+  string line;
+  getline(mapin, line);
+  int skiroc, channel, layer, sensor_u, sensor_v, u, v, celltype;
+  map<int, map<pair<int, int>, pair<int, int> > > layer2uv2eid;
+  while (mapin 
+	 >> skiroc >> channel >> layer
+	 >> sensor_u >> sensor_v
+	 >> u >> v 
+	 >> celltype)
+    {
+      pair<int, int> uv(u, v);
+      pair<int, int> eid(skiroc, channel);
+      if ( layer2uv2eid.find(layer) == layer2uv2eid.end() )
+	layer2uv2eid[layer] = map<pair<int, int>, pair<int, int> >();
+      layer2uv2eid[layer][uv] = eid;
+    }
+
+  // ----------------------------------------------------------
   // create a 2-D histogram with hexagonal bins, a 
   // subset of which lie within the hexagonal boundary
   // that defines a sensor
+  // ----------------------------------------------------------
   HGCSSGeometryConversion geom(MODEL, CELL_SIDE);
   geom.initialiseHoneyComb(WIDTH, CELL_SIDE);
   TH2Poly* map = geom.hexagonMap();
 
+  // ----------------------------------------------------------
   // create a single hexagonal bin to represent sensor.
   // we shall use this hexagon region to determine which 
   // sim cellids lie within a sensor.
+  // ----------------------------------------------------------
   TH2Poly hsensor;
   hsensor.SetName("hsensor");
   hsensor.SetTitle("sensor");
@@ -110,39 +173,42 @@ int main()
   hsensortrue.Draw("col same");
   map->Draw("same");
 
+  // ----------------------------------------------------------
+  // loop over cells
+  // ----------------------------------------------------------
   char record[80];
-  ofstream sout("sensor_cellid_uv_map.txt");
-  sprintf(record, "%6s %6s %6s %6s\t%10s %10s",
-	  "posid", "cellid", "u", "v", "x", "y");
+  ofstream sout("sensor_map.txt");
+  sprintf(record, "%6s %6s %6s %6s\t%10s %10s %10s %10s",
+	  "posid", "cellid", "u", "v", "x", "y", "skiroc", "channel");
   cout << record << endl;
   sout << record << endl;
 
-  // loop
+
   TList* bins = map->GetBins();
   TIter next(bins);
   TText text;
   text.SetTextSize(0.02);
   text.SetTextAlign(22);  // centered
 
+  HGCalTBTopology topology;
+  HGCalTBCellVertices vertices;
+
+  // in offline code, layers start at 1
+  // hard code layer and channel count for now
+  int ncells = 128;
+  layer    = 1;
+  sensor_u = 0;
+  sensor_v = 0;
+
   // number of cells in y (either 12 or 11)
   bool new_column = true;
   bool odd_column = true;
   int colnumber = 0;
-  int u = 0;
-  int v = 0;
   int u_start = 1;
   int v_start = 8;
   int number=1;
-
-  HGCalTBTopology topology;
-  HGCalTBCellVertices vertices;
-
-  // hard code for now
-  int layer = 0;
-  int sensor_iu = 0;
-  int sensor_iv = 0;
-  int ncells  = 128;
-
+  u = 0;
+  v = 0;
   while ( TH2PolyBin* bin=(TH2PolyBin*)next() )
     {
       // We get the starting
@@ -178,14 +244,14 @@ int main()
       u--;
 
       if ( ! topology.iu_iv_valid(layer, 
-				  sensor_iu, 
-				  sensor_iv, 
+				  sensor_u, 
+				  sensor_v, 
 				  u, v, 
 				  ncells) ) continue;
 
       pair<double, double> pos = vertices.GetCellCentreCoordinates(layer, 
-								   sensor_iu, 
-								   sensor_iv, 
+								   sensor_u, 
+								   sensor_v, 
 								   u, v, 
 								   ncells);
       double x = pos.first;
@@ -193,6 +259,8 @@ int main()
       x *= 10; // change to mm
       y *= 10;
 
+      // posid is the position identifier, which specifies whether the
+      // cell is an interior cell or a boundary cell.
       int posid = 0;
       if ( ! sensor->IsInside(x, y) )
 	{
@@ -223,6 +291,12 @@ int main()
 	    }
 	}
 
+      // map to skiroc number and channel
+      pair<int, int> uv(u, v);
+      pair<int, int> eid = layer2uv2eid[layer][uv];
+      int skiroc = eid.first;
+      int channel= eid.second;
+
       csensor.cd();
       sprintf(record, "%d", binnumber);
       text.DrawText(x, y, record); 
@@ -231,8 +305,8 @@ int main()
       sprintf(record, "%d,%d", u, v);
       text.DrawText(x, y, record); 
 
-      sprintf(record, "%6d %6d %6d %6d\t%10.3f %10.3f", 
-	      posid, binnumber, u, v, x, y);
+      sprintf(record, "%6d %6d %6d %6d\t%10.3f %10.3f %10d %10d", 
+	      posid, binnumber, u, v, x, y, skiroc, channel);
       cout << record << endl;
       sout << record << endl;
     }

@@ -25,11 +25,12 @@ HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
     _type(map<pair<int, int>, int>()),
     _xymap(map<pair<int, int>, pair<double, double> >()),
+    _eidmap(map<pair<int, int>, pair<int, int> >()),
     _geom(HGCSSGeometryConversion(MODEL, CELL_SIDE))
 {
   if ( inputFilename == "" )
     inputFilename=string("$CMSSW_BASE/src/HGCal/TBStandaloneSimulator/data/"
-			 "sensor_cellid_uv_map.txt");
+			 "sensor_map.txt");
 
   char inpfile[1024];
   sprintf(inpfile, "%s", gSystem->ExpandPathName(inputFilename.c_str()));
@@ -47,13 +48,16 @@ HGCCellMap::HGCCellMap(string inputFilename)
   string line;
   getline(fin, line);
 
-  int posid, cellid, u, v;
+  int posid, cellid, u, v, skiroc, channel;
   double x, y;  
-  while (fin >> posid >> cellid >> u >> v >> x >> y)
+  while (fin >> posid >> cellid >> u >> v >> x >> y >> skiroc >> channel)
     {
       pair<int, int> uv(u, v);
       _uvmap[cellid] = uv;
       _type[uv] = posid;
+
+      pair<int, int> sc(skiroc, channel);
+      _eidmap[uv] = sc;
 
       pair<double, double> xy(x, y);
       _xymap[uv] = xy;
@@ -82,13 +86,23 @@ HGCCellMap::operator()(size_t cellid)
 }
 
 pair<double, double>
-HGCCellMap::operator()(int u, int v)
+HGCCellMap::uv2xy(int u, int v)
 {
   pair<int, int> key(u, v);
   if ( _xymap.find(key) != _xymap.end() )
     return _xymap[key];
   else
     return pair<double, double>(-123456, -123456);
+}
+
+pair<int, int>
+HGCCellMap::uv2eid(int u, int v)
+{
+  pair<int, int> key(u, v);
+  if ( _eidmap.find(key) != _eidmap.end() )
+    return _eidmap[key];
+  else
+    return pair<int, int>(-123456, -123456);
 }
 
 pair<int, int>
