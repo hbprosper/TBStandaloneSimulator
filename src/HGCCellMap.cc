@@ -62,8 +62,19 @@ HGCCellMap::HGCCellMap(string inputFilename)
       pair<double, double> xy(x, y);
       _xymap[uv] = xy;
 
-      pair<pair<int, int>, int> cell(uv, posid);
+      HGCCellMap::Cell cell;
+      cell.skiroc  = skiroc;
+      cell.channel = channel;
+      cell.u = u;
+      cell.v = v;
+      cell.x = x;
+      cell.y = y;
+      cell.z = 0;
+      cell.count = 0;
+      cell.type = posid;
       _cells.push_back(cell);
+
+      _cidmap[uv] = cellid;
     }
   fin.close();
 }
@@ -72,7 +83,7 @@ HGCCellMap::~HGCCellMap()
 {
 }
 
-std::vector<pair<pair<int, int>, int> >
+std::vector<HGCCellMap::Cell>
 HGCCellMap::cells() { return _cells; }
 
 
@@ -93,6 +104,17 @@ HGCCellMap::uv2xy(int u, int v)
     return _xymap[key];
   else
     return pair<double, double>(-123456, -123456);
+}
+
+
+int
+HGCCellMap::uv2cellid(int u, int v)
+{
+  pair<int, int> key(u, v);
+  if ( _cidmap.find(key) != _cidmap.end() )
+    return _cidmap[key];
+  else
+    return -123456;
 }
 
 pair<int, int>
