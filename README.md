@@ -41,4 +41,5 @@ g4_00.wrl
 g4_01.wrl
 ```
 The Root file contains the results of simulation, while the second and third
-files are files that can be rendered using any free VRML browser.
+files are files that can be rendered using a VRML browser.
+
