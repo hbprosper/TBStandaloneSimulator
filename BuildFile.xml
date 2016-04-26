@@ -7,7 +7,12 @@
 <use name="FWCore/Catalog"/>
 <use name="FWCore/Sources"/>
 <use name="FWCore/Common"/>
+
 <use name="root"/>  
+<use name="fastjet"/>
+<use name="hepmc"/>
+<use name="geant4vis"/>  
+
 <export>
    <lib name="1"/>
 </export>

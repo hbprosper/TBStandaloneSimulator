@@ -2,6 +2,14 @@
 <use   name="HGCal/Geometry"/>
 <use   name="HGCal/DataFormats"/>
 <use   name="HGCal/CondObjects"/>
+
+<use   name="fastjet"/>
+<use   name="hepmc"/>
+<use   name="geant4vis"/>
 <lib   name="Graf"/>
 <lib   name="Gpad"/>
+
 <bin   name="createIDMap" file="createIDMap.cc"></bin>
+<bin   name="simulateTB"  file="simulateTB.cc"></bin>
+<bin   name="digitizeTB"  file="digitizeTB.cc"></bin>
+
