@@ -29,3 +29,16 @@ filelist
 ```
 one file per line. 
 
+# Running the simulator
+The simulator and digitizer executables are called simulateTB and digitizeTB, respectively. To simulate, and visualize, a couple of 32 GeV electron events, do
+```linux
+simulateTB withvis.mac
+```
+which creates the files
+```linux
+PFcal.root
+g4_00.wrl
+g4_01.wrl
+```
+The Root file contains the results of simulation, while the second and third
+files are files that can be rendered using any free VRML browser.
