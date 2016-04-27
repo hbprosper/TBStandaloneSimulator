@@ -43,6 +43,14 @@ namespace {
   // side length of sensor     
   double SENSOR_SIDE=NCELL*CELL_SIDE; 
   double WIDTH=2*SENSOR_SIDE;  // width of sensor corner to corner
+  struct Cell
+  {
+    int skiroc;
+    int channel; 
+    int sensor_u; 
+    int sensor_v; 
+    int celltype;
+  };
 };
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -76,18 +84,29 @@ int main(int argc, char **argv)
   string line;
   getline(mapin, line);
   int skiroc, channel, layer, sensor_u, sensor_v, u, v, celltype;
-  map<int, map<pair<int, int>, pair<int, int> > > layer2uv2eid;
+  map<int, map<pair<int, int>, Cell> > layer2uv2eid;
+  vector<int> layers;
+  int lastlayer=-1;
   while (mapin 
 	 >> skiroc >> channel >> layer
 	 >> sensor_u >> sensor_v
 	 >> u >> v 
 	 >> celltype)
     {
+      Cell cell;
+      cell.skiroc   = skiroc;
+      cell.channel  = channel;
+      cell.sensor_u = sensor_u;
+      cell.sensor_v = sensor_v;
+      cell.celltype = celltype;
       pair<int, int> uv(u, v);
-      pair<int, int> eid(skiroc, channel);
+
       if ( layer2uv2eid.find(layer) == layer2uv2eid.end() )
-	layer2uv2eid[layer] = map<pair<int, int>, pair<int, int> >();
-      layer2uv2eid[layer][uv] = eid;
+	layer2uv2eid[layer] = map<pair<int, int>, Cell>();
+      layer2uv2eid[layer][uv] = cell;
+
+      if ( layer != lastlayer ) layers.push_back(layer);
+      lastlayer = layer;
     }
 
   // ----------------------------------------------------------
@@ -178,14 +197,17 @@ int main(int argc, char **argv)
   // ----------------------------------------------------------
   char record[80];
   ofstream sout("sensor_map.txt");
-  sprintf(record, "%6s %6s %6s %6s\t%10s %10s %10s %10s",
-	  "posid", "cellid", "u", "v", "x", "y", "skiroc", "channel");
+  sprintf(record, 
+	  "%5s %5s %5s %5s %5s %5s %5s "
+	  "%5s %5s %5s " 
+	  "%9s %9s",
+	  "layer", "posid", "cid", "s_u", "s_v", "u", "v", 
+	  "ski","chan","ctype",
+	  "x", "y");
   cout << record << endl;
   sout << record << endl;
 
-
   TList* bins = map->GetBins();
-  TIter next(bins);
   TText text;
   text.SetTextSize(0.02);
   text.SetTextAlign(22);  // centered
@@ -196,119 +218,127 @@ int main(int argc, char **argv)
   // in offline code, layers start at 1
   // hard code layer and channel count for now
   int ncells = 128;
-  layer    = 1;
-  sensor_u = 0;
-  sensor_v = 0;
-
-  // number of cells in y (either 12 or 11)
-  bool new_column = true;
-  bool odd_column = true;
-  int colnumber = 0;
-  int u_start = 1;
-  int v_start = 8;
-  int number=1;
-  u = 0;
-  v = 0;
-  while ( TH2PolyBin* bin=(TH2PolyBin*)next() )
+  for(size_t c=0; c < layers.size(); c++)
     {
-      // We get the starting
-      // values of (u, v) per column as follows:
-      //   1. every two columns, increment u 
-      //   2. every column, decrement v
-      // Thereafter:
-      //   1. decrement u
+      TIter next(bins);
+      int layer = layers[c];
 
-      int binnumber = bin->GetBinNumber();
-      new_column = binnumber == number;
-      if ( new_column )
+      // number of cells in y (either 12 or 11)
+      bool new_column = true;
+      bool odd_column = true;
+      int colnumber = 0;
+      int u_start = 1;
+      int v_start = 8;
+      int number=1;
+      u = 0;
+      v = 0;
+      while ( TH2PolyBin* bin=(TH2PolyBin*)next() )
 	{
-	  // decrement v
-	  v_start--;
-
-	  colnumber++;
-	  if ( colnumber % 2 == 1 ) u_start++;
-
-	  // initialize (u, v) for current column
-	  u = u_start+1;
-	  v = v_start;
-
-	  new_column = false;
-	  if ( odd_column )
-	    number += 12;
-	  else
-	    number += 11;
-	  odd_column = !odd_column;
-	}
-
-      // decrement u
-      u--;
-
-      if ( ! topology.iu_iv_valid(layer, 
-				  sensor_u, 
-				  sensor_v, 
-				  u, v, 
-				  ncells) ) continue;
-
-      pair<double, double> pos = vertices.GetCellCentreCoordinates(layer, 
-								   sensor_u, 
-								   sensor_v, 
-								   u, v, 
-								   ncells);
-      double x = pos.first;
-      double y = pos.second;
-      x *= 10; // change to mm
-      y *= 10;
-
-      // posid is the position identifier, which specifies whether the
-      // cell is an interior cell or a boundary cell.
-      int posid = 0;
-      if ( ! sensor->IsInside(x, y) )
-	{
-	  // boundary cell, determine type
-	  if ( v > 3 )
+	  // We get the starting
+	  // values of (u, v) per column as follows:
+	  //   1. every two columns, increment u 
+	  //   2. every column, decrement v
+	  // Thereafter:
+	  //   1. decrement u
+	  
+	  int binnumber = bin->GetBinNumber();
+	  new_column = binnumber == number;
+	  if ( new_column )
 	    {
-	      // either lower or upper left
-	      if ( u < -3 )
-		posid = 3; // upper
-	      else
-		posid = 4; // lower
-	    }
-	  else if ( v < -3 )
-	    {
-	      // either lower or upper right
-	      if ( u > 3 )
-		posid = 6; // lower
-	      else
-		posid = 1; // upper
-	    }
-	  else
-	    {
-	      // either lower or upper
-	      if ( u > 0 )
-		posid = 5; // lower
-	      else
-		posid = 2; // upper
-	    }
-	}
+	      // decrement v
+	      v_start--;
+	      
+	      colnumber++;
+	      if ( colnumber % 2 == 1 ) u_start++;
+	      
+	      // initialize (u, v) for current column
+	      u = u_start+1;
+	      v = v_start;
 
-      // map to skiroc number and channel
-      pair<int, int> uv(u, v);
-      pair<int, int> eid = layer2uv2eid[layer][uv];
-      int skiroc = eid.first;
-      int channel= eid.second;
+	      new_column = false;
+	      if ( odd_column )
+		number += 12;
+	      else
+		number += 11;
+	      odd_column = !odd_column;
+	    }
 
-      csensor.cd();
-      sprintf(record, "%d", binnumber);
-      text.DrawText(x, y, record); 
+	  // decrement u
+	  u--;
+
+	  // map to skiroc number and channel
+	  pair<int, int> uv(u, v);
+	  Cell cell = layer2uv2eid[layer][uv];
+	  
+	  if ( ! topology.iu_iv_valid(layer, 
+				      cell.sensor_u, 
+				      cell.sensor_v, 
+				      u, v, 
+				      ncells) ) continue;
+
+	  pair<double, double> pos 
+	    = vertices.GetCellCentreCoordinates(layer, 
+						cell.sensor_u, 
+						cell.sensor_v, 
+						u, v, 
+						ncells);
+	  double x = pos.first;
+	  double y = pos.second;
+	  x *= 10; // change to mm
+	  y *= 10;
+
+	  // posid is the position identifier, which specifies whether the
+	  // cell is an interior cell or a boundary cell.
+	  int posid = 0;
+	  if ( ! sensor->IsInside(x, y) )
+	    {
+	      // boundary cell, determine type
+	      if ( v > 3 )
+		{
+		  // either lower or upper left
+		  if ( u < -3 )
+		    posid = 3; // upper
+		  else
+		    posid = 4; // lower
+		}
+	      else if ( v < -3 )
+		{
+		  // either lower or upper right
+		  if ( u > 3 )
+		    posid = 6; // lower
+		  else
+		    posid = 1; // upper
+		}
+	      else
+		{
+		  // either lower or upper
+		  if ( u > 0 )
+		    posid = 5; // lower
+		  else
+		    posid = 2; // upper
+		}
+	    }
+
+	  csensor.cd();
+	  sprintf(record, "%d", binnumber);
+	  text.DrawText(x, y, record); 
       
-      cuv.cd();
-      sprintf(record, "%d,%d", u, v);
-      text.DrawText(x, y, record); 
-
-      sprintf(record, "%6d %6d %6d %6d\t%10.3f %10.3f %10d %10d", 
-	      posid, binnumber, u, v, x, y, skiroc, channel);
-      cout << record << endl;
-      sout << record << endl;
+	  cuv.cd();
+	  sprintf(record, "%d,%d", u, v);
+	  text.DrawText(x, y, record); 
+	  
+	  sprintf(record, 
+		  "%5d %5d %5d %5d %5d %5d %5d " 
+		  "%5d %5d %5d " 
+		  "%9.3f %9.3f", 
+		  layer, posid, binnumber, 
+		  cell.sensor_u, cell.sensor_v,
+		  u, v,  
+		  cell.skiroc, cell.channel, cell.celltype, 
+		  x, y);
+	  cout << record << endl;
+	  sout << record << endl;
+	}
     }
   sout.close();
 

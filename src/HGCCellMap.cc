@@ -23,10 +23,13 @@ namespace {
 
 HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
-    _type(map<pair<int, int>, int>()),
+    _posid(map<pair<int, int>, int>()),
     _xymap(map<pair<int, int>, pair<double, double> >()),
-    _eidmap(map<pair<int, int>, pair<int, int> >()),
-    _geom(HGCSSGeometryConversion(MODEL, CELL_SIDE))
+    _celltype(map<int, map<pair<int, int>, int> >()),
+    _eidmap(map<int, map<pair<int, int>, pair<int, int> > >()),
+    _geom(HGCSSGeometryConversion(MODEL, CELL_SIDE)),
+    _map(0),
+    _cells(map<int, vector<HGCCellMap::Cell> >())
 {
   if ( inputFilename == "" )
     inputFilename=string("$CMSSW_BASE/src/HGCal/TBStandaloneSimulator/data/"
@@ -48,20 +51,28 @@ HGCCellMap::HGCCellMap(string inputFilename)
   string line;
   getline(fin, line);
 
-  int posid, cellid, u, v, skiroc, channel;
-  double x, y;  
-  while (fin >> posid >> cellid >> u >> v >> x >> y >> skiroc >> channel)
+  int layer, posid, cellid,
+    sensor_u, sensor_v, u, v,  
+    skiroc, channel, celltype; 
+  double x, y;
+
+  while (fin 
+	 >> layer >> posid >> cellid 
+	 >> sensor_u >> sensor_v >> u >> v
+	 >> skiroc >> channel >> celltype 
+	 >> x >> y)
     {
+      int key = makeKey(layer, sensor_u, sensor_v);
+
       pair<int, int> uv(u, v);
-      _uvmap[cellid] = uv;
-      _type[uv] = posid;
+      if ( layer == 1 )
+	{
+	  _uvmap[cellid] = uv;
+	  _posid[uv] = posid;
 
-      pair<int, int> sc(skiroc, channel);
-      _eidmap[uv] = sc;
-
-      pair<double, double> xy(x, y);
-      _xymap[uv] = xy;
-
+	  pair<double, double> xy(x, y);
+	  _xymap[uv] = xy;
+	}
       HGCCellMap::Cell cell;
       cell.skiroc  = skiroc;
       cell.channel = channel;
@@ -71,10 +82,20 @@ HGCCellMap::HGCCellMap(string inputFilename)
       cell.y = y;
       cell.z = 0;
       cell.count = 0;
-      cell.type = posid;
-      _cells.push_back(cell);
+      cell.posid = posid;
+      cell.celltype = celltype;
 
-      _cidmap[uv] = cellid;
+      if ( _cells.find(key) == _cells.end() ) 
+	_cells[key] = std::vector<HGCCellMap::Cell>(); 
+      _cells[key].push_back(cell);
+
+      if ( _celltype.find(key) == _celltype.end() )
+	_celltype[key] = map<pair<int, int>, int>();
+      _celltype[key][uv] = celltype;
+
+      if ( _eidmap.find(key) == _eidmap.end() ) 
+	_eidmap[key] = map<pair<int, int>, pair<int, int> >();
+      _eidmap[key][uv] = pair<int, int>(skiroc, channel);
     }
   fin.close();
 }
@@ -84,7 +105,14 @@ HGCCellMap::~HGCCellMap()
 }
 
 std::vector<HGCCellMap::Cell>
-HGCCellMap::cells() { return _cells; }
+HGCCellMap::cells(int layer, int sensor_u, int sensor_v) 
+{
+  int key = makeKey(layer, sensor_u, sensor_v);
+  if ( _cells.find(key) != _cells.end() )
+    return _cells[key];
+  else
+    return std::vector<HGCCellMap::Cell>();
+}
 
 
 pair<int, int>
@@ -106,23 +134,18 @@ HGCCellMap::uv2xy(int u, int v)
     return pair<double, double>(-123456, -123456);
 }
 
-
-int
-HGCCellMap::uv2cellid(int u, int v)
-{
-  pair<int, int> key(u, v);
-  if ( _cidmap.find(key) != _cidmap.end() )
-    return _cidmap[key];
-  else
-    return -123456;
-}
-
 pair<int, int>
-HGCCellMap::uv2eid(int u, int v)
+HGCCellMap::uv2eid(int layer, int sensor_u, int sensor_v, int u, int v)
 {
-  pair<int, int> key(u, v);
+  int key = makeKey(layer, sensor_u, sensor_v);
   if ( _eidmap.find(key) != _eidmap.end() )
-    return _eidmap[key];
+    {
+      pair<int, int> uv(u, v);
+      if ( _eidmap[key].find(uv) != _eidmap[key].end() )
+	return _eidmap[key][uv];
+      else
+	return pair<int, int>(-123456, -123456);
+    }
   else
     return pair<int, int>(-123456, -123456);
 }
@@ -134,21 +157,28 @@ HGCCellMap::xy2uv(double x, double y)
   return (*this)(cellid);
 }
 
-
-bool
-HGCCellMap::valid(int u, int v)
+int
+HGCCellMap::celltype(int layer, int sensor_u, int sensor_v, int u, int v)
 {
-  pair<int, int> key(u, v);
-  return _xymap.find(key) != _xymap.end();
+  int key = makeKey(layer, sensor_u, sensor_v);
+  if ( _celltype.find(key) != _celltype.end() )
+    {
+      pair<int, int> uv(u, v);
+      if ( _celltype[key].find(uv) != _celltype[key].end() )
+	return _celltype[key][uv];
+      else
+	return -123456;
+    }
+  else
+    return -123456;
 }
 
-
 int
-HGCCellMap::type(int u, int v)
+HGCCellMap::posid(int u, int v)
 {
   pair<int, int> key(u, v);
-  if ( _type.find(key) != _type.end() )
-    return _type[key];
+  if ( _posid.find(key) != _posid.end() )
+    return _posid[key];
   else
     return -1;
 }

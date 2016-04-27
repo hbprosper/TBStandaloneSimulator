@@ -11,15 +11,14 @@
 #include "HGCal/TBStandaloneSimulator/plugins/HGCSimDigiSource.h"
 #include "HGCal/DataFormats/interface/HGCalTBDataFrameContainers.h"
 #include "HGCal/DataFormats/interface/SKIROCParameters.h"
-#include "HGCal/DataFormats/interface/HGCalTBElectronicsId.h"
 #include "HGCal/DataFormats/interface/HGCalTBDetId.h"
 // -------------------------------------------------------------------------
 using namespace std;
 namespace {
-  struct Channel
+  struct Cell
   {
     int skiroc;      // SKIROC number
-    int id;          // channel id
+    int channel;     // channel number
     DetId detid;     // detector id
     uint16_t ADClow;
     uint16_t ADChigh;
@@ -29,15 +28,15 @@ namespace {
     int sensor_v;
     int u;
     int v;
-    int type;
+    int celltype;
     double x;
     double y;
-    bool operator<(Channel& o)
+    bool operator<(Cell& o)
     {
       // negate skiroc number so that
       // SKIROC 2 occurs before SKIROC 1
-      int lhs = -100000*skiroc + id;
-      int rhs = -100000*o.skiroc + o.id;
+      int lhs = -100000*skiroc + channel;
+      int rhs = -100000*o.skiroc + o.channel;
       return lhs < rhs; 
     }
   };
@@ -56,7 +55,6 @@ HGCSimDigiSource::HGCSimDigiSource
      _entries(0),        // number of simulated events
      _entry(0),          // entry number,
      _cellmap(HGCCellMap()), // cell id to (u, v) map and (x, y) to (u, v)
-     _emap(HGCalElectronicsMap()),
      _recohits(0)
 {
   // collections to be produced
@@ -132,50 +130,52 @@ void HGCSimDigiSource::produce(edm::Event& event)
   std::auto_ptr<SKIROC2DigiCollection> 
     digis(new SKIROC2DigiCollection(SKIROC::MAXSAMPLES));
 
-  vector<Channel> channels;
+  vector<Cell> channels;
   for(size_t c=0; c < _recohits->size(); c++)
     {
       // get a reference to sim rechit NOT a copy
       HGCSSRecoHit& hit = (*_recohits)[c];
 
-      Channel channel;
-      channel.ADChigh = static_cast<uint16_t>(hit.adcCounts());
+      Cell cell;
+      cell.ADChigh = static_cast<uint16_t>(hit.adcCounts());
 
       // apply "zero" suppression
-      if ( channel.ADChigh < _minadccount ) continue;
+      if ( cell.ADChigh < _minadccount ) continue;
 
-      channel.ADClow = 0;
-      channel.TDC = 0;
+      cell.ADClow = 0;
+      cell.TDC = 0;
 
       // layer count starts at 1 in offline
       // and at zero in sim!
-      channel.layer = hit.layer() + 1;
-      channel.x  = hit.get_x();
-      channel.y  = hit.get_y();
+      cell.layer = hit.layer() + 1;
+      cell.x  = hit.get_x();
+      cell.y  = hit.get_y();
 
       // create DetId
-      channel.sensor_u = 0;
-      channel.sensor_v = 0;
-      // map sim cell center (x,y) to (u,v) coordinates
-      std::pair<int, int> uv = _cellmap.xy2uv(channel.x, channel.y);
-      channel.u = uv.first;
-      channel.v = uv.second;
+      // FIXME: for now, hard code sensor_u and sensor_v
+      cell.sensor_u = 0;
+      cell.sensor_v = 0;
+      // map sim cell center local (x,y) to local (u,v) coordinates
+      std::pair<int, int> uv = _cellmap.xy2uv(cell.x, cell.y);
+      cell.u = uv.first;
+      cell.v = uv.second;
 
-      channel.type = _cellmap.type(channel.u, channel.v);
-      if ( channel.type == 0 )
-	channel.type = 1;
-      else
-	channel.type = 2;
-      channel.detid = HGCalTBDetId(channel.layer, 
-				   channel.sensor_u, channel.sensor_v, 
-				   channel.u, channel.v, 
-				   channel.type);
+      cell.celltype = _cellmap.celltype(cell.layer,
+					cell.sensor_u, cell.sensor_v, 
+					cell.u, cell.v);
+
+      cell.detid = HGCalTBDetId(cell.layer, 
+				cell.sensor_u, cell.sensor_v, 
+				cell.u, cell.v, 
+				cell.celltype);
 
       // map to SKIROC and channel id numbers
-      pair<int, int> eid = _cellmap.uv2eid(channel.u, channel.v);
-      channel.skiroc = eid.first;
-      channel.id     = eid.second;
-      channels.push_back(channel);
+      pair<int, int> eid = _cellmap.uv2eid(cell.layer,
+					   cell.sensor_u, cell.sensor_v, 
+					   cell.u, cell.v);
+      cell.skiroc = eid.first;
+      cell.channel= eid.second;
+      channels.push_back(cell);
     }
 
   // sort so that SKIROC 2 comes before SKIROC 1
@@ -183,20 +183,20 @@ void HGCSimDigiSource::produce(edm::Event& event)
   sort(channels.begin(), channels.end());
   for(size_t c = 0; c < channels.size(); c++)
     {
-      Channel& channel = channels[c];
-      digis->addDataFrame(channel.detid);
+      Cell& cell = channels[c];
+      digis->addDataFrame(cell.detid);
       digis->backDataFrame().setSample(0, 
-				       channel.ADClow, 
-				       channel.ADChigh,
-				       channel.TDC);
+				       cell.ADClow, 
+				       cell.ADChigh,
+				       cell.TDC);
       if ( _entry < 2 )
 	{
 	  char record[80];
 	  sprintf(record, 
 		  "(SKIROC,channel)=(%2d,%2d)"
 		  " (u,v)=(%2d,%2d), (x,y)=(%6.2f,%6.2f)",
-		  channel.skiroc, channel.id, 
-		  channel.u, channel.v, channel.x, channel.y);
+		  cell.skiroc, cell.channel, 
+		  cell.u, cell.v, cell.x, cell.y);
 	  cout << record << endl;
 	}
     }
