@@ -38,7 +38,11 @@ class TBFileReader:
         for ii, record in enumerate(records):
             record = simplify.sub(">", strip(record))
             t = split(record)
-            name = extract.findall(record)[0]
+            s = extract.findall(record)
+            if len(s) > 0:
+                name = s[0]
+            else:
+                name = t[0]
             objects[name] = (t[0], dequote.sub("",t[1]), dequote.sub("",t[2]))
 
         # create event buffer, get event iterator,
@@ -127,29 +131,18 @@ def main():
     index    = 0
 
     while reader.read(index):
-        rechits = reader("HGCSSRecoHit")
-        skiroc2 = reader("SKIROC2DataFrame")
-        if rechits == None: sys.exit("\n** cannot find rec hits collection\n")
-        if skiroc2 == None: sys.exit("\n** cannot find skiroc collection\n")
-        print "%d\tnumber of rechits:     %d" % (index, rechits.size())
-        print "%d\tnumber of skiroc hits: %d" % (index, skiroc2.size())
-        for ii in xrange(rechits.size()):
+        skiroc = reader("SKIROC2DataFrame")
+        if skiroc == None: sys.exit("\n** cannot find skiroc collection\n")
+        print "%d\tnumber of skiroc hits: %d" % (index, skiroc.size())
+        for ii in xrange(skiroc.size()):
             digi   = SKIROC2DataFrame(skiroc2[ii])
             nsamples = digi.samples()
-            energy = rechits[ii].energy()
-            adc    = rechits[ii].adcCounts()
-            x      = rechits[ii].get_x()
-            y      = rechits[ii].get_y()
-            z      = rechits[ii].get_z()
-            print "\t%5d: cell(%6.2f,%6.2f,%6.2f): ADC = %d" % \
-                (ii, x, y, z, int(adc))
-
             detid = digi.detid()
             iu = detid.iu()
             iv = detid.iv()
-            xy = cellmap(iu, iv)
-            xx = xy.first
-            yy = xy.second
+            xy = cellmap.uv2xy(iu, iv)
+            x  = xy.first
+            y  = xy.second
             for jj in xrange(nsamples):
                 adc = digi[jj].adcHigh()
                 print "\t%5d: cell(%6.2f,%6.2f):        ADC = %d" % \
