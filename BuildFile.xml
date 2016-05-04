@@ -3,16 +3,17 @@
 <use name="FWCore/ParameterSet"/>
 <use name="FWCore/MessageLogger"/>
 <use name="FWCore/ServiceRegistry"/>
+<use name="FWCore/PythonParameterSet"/>
 <use name="FWCore/Utilities"/>
-<use name="FWCore/Catalog"/>
-<use name="FWCore/Sources"/>
-<use name="FWCore/Common"/>
+<use name="boost"/>
+<use name="boost_python"/>
 
 <use name="root"/>  
 <use name="fastjet"/>
 <use name="hepmc"/>
 <use name="geant4vis"/>  
-
+<lib name="PyROOT"/> 
+ 
 <export>
    <lib name="1"/>
 </export>

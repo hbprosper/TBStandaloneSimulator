@@ -3,6 +3,7 @@
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSEvent.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSSamplingSection.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSSimHit.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSTrackSegment.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSGenParticle.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSRecoHit.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
@@ -28,6 +29,10 @@ namespace HGCSS
     HGCSSRecoHit _a4;
     std::vector<HGCSSRecoHit> _v4;
     edm::Wrapper<std::vector<HGCSSRecoHit> > _w4;
+
+    HGCSSTrackSegment _a5;
+    std::vector<HGCSSTrackSegment> _v5;
+    edm::Wrapper<std::vector<HGCSSTrackSegment> > _w5;
   };
 }
 

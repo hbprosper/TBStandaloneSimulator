@@ -1,5 +1,5 @@
 /control/verbose 0
-/control/saveHistory
+/control/saveHistory 0
 /run/verbose 0
 /event/verbose 0
 /tracking/verbose 0
@@ -22,12 +22,12 @@
 /vis/drawVolume
 
 # Specify view angle:
-/vis/viewer/set/viewpointThetaPhi 50. 120.
+/vis/viewer/set/viewpointThetaPhi 40. 60.
 
 # Specify style (surface or wireframe):
 /vis/viewer/set/style wireframe
 
-/vis/viewer/zoom 10
+/vis/viewer/zoom 20
 
 # Draw coordinate axes (50cm long)
 /vis/scene/add/axes 0 0 0 50 cm
@@ -44,5 +44,5 @@
 # Draw smooth trajectories
 /vis/scene/add/trajectories smooth
 
-# run 2 events
-/run/beamOn 2
+# run 1 events
+/run/beamOn 1

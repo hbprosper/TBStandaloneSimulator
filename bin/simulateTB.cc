@@ -1,7 +1,10 @@
+// ----------------------------------------------------------------------------
+// read geometry from a config file 04-28-2016 HBP
+// ----------------------------------------------------------------------------
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
-
-#include "Randomize.hh"
+#include "G4VisExecutive.hh"
+#include "G4UIExecutive.hh"
 
 #include "HGCal/TBStandaloneSimulator/interface/DetectorConstruction.hh"
 #include "HGCal/TBStandaloneSimulator/interface/PhysicsList.hh"
@@ -10,12 +13,73 @@
 #include "HGCal/TBStandaloneSimulator/interface/EventAction.hh"
 #include "HGCal/TBStandaloneSimulator/interface/SteppingAction.hh"
 #include "HGCal/TBStandaloneSimulator/interface/SteppingVerbose.hh"
+#include "HGCal/TBStandaloneSimulator/interface/TBGeometry.h"
 
-#include "G4VisExecutive.hh"
-#include "G4UIExecutive.hh"
+#include "TSystem.h"
+#include "TString.h"
 
 int main(int argc,char** argv)
 {
+  // A hack to avoid compiler warning
+  int hack = CLHEP::HepRandomGenActive;
+  hack = argc;
+  argc = hack;
+
+  if ( argc < 2 )
+    {
+      std::cout << "Usage: " << std::endl
+		<< "  simulateTB <macro file> <geometry file>" 
+		<< std::endl
+		<< std::endl
+		<< "OR supply a config file with a n extension other than .mac" 
+		<< std::endl
+		<< std::endl
+		<< "  simulateTB " << "\x1b[1;31;48m<config file>\x1b[0m" 
+		<< std::endl
+		<< std::endl
+		<< "  containing the keyword/value pairs:"
+		<< std::endl
+		<< "     macro       <macro file>"
+		<< std::endl
+		<< "     geometry    <geometry file>"
+		<< std::endl
+		<< "     savetracks  true|false"    
+		<< std::endl;
+      exit(0);
+    }
+
+  G4String macroFile = gSystem->ExpandPathName(argv[1]);
+  G4String geomFile("");
+  TBConfig config;
+
+  // check if the first file is a macro file.
+  // if it is, we need another argument
+  if ( TString(macroFile.c_str()).EndsWith(".mac") )
+    {
+      if ( argc < 3 )
+	{
+	  std::cout << "Usage: " << std::endl
+		    << "  simulateTB " << macroFile << " <geometry file>" 
+		    << std::endl;
+	    exit(0);
+	}
+      // Geometry config file
+      geomFile = gSystem->ExpandPathName(argv[2]); 
+      config.macro = macroFile;
+      config.geometry = geomFile;
+    }
+  else
+    {
+      // Assume this is a config file
+      config = TBConfig(macroFile);
+    }
+  G4cout << config << G4endl;
+
+  macroFile = config.macro;
+  geomFile  = config.geometry;
+
+  TBGeometry geometry(geomFile);
+
   // Choose the Random engine
   CLHEP::HepRandom::setTheEngine(new CLHEP::RanecuEngine);
   
@@ -26,33 +90,15 @@ int main(int argc,char** argv)
   G4RunManager * runManager = new G4RunManager;
 
   // Set mandatory initialization classes
-  int version=110;
-  //int version=DetectorConstruction::v_HGCALEE_TB;
-  //int model=DetectorConstruction::m_FULLSECTION;
-  //int model=DetectorConstruction::m_BOXWITHCRACK_100;
-  int model=DetectorConstruction::m_2016TB;
-  //int model=DetectorConstruction::m_SIMPLE_100;
 
-  double eta=0;
-
-  if(argc>2) version=atoi(argv[2]);
-  if(argc>3) model=atoi(argv[3]);
-  if(argc>4) eta=atof(argv[4]);
-
-  std::cout << "-- Running version " << version << " model " << model << std::endl;
-
-  std::string absThickW="1.75,1.75,1.75,1.75,1.75,2.8,2.8,2.8,2.8,2.8,4.2,4.2,4.2,4.2,4.2";
-  std::string absThickPb="1,1,1,1,1,2.1,2.1,2.1,2.1,2.1,4.4,4.4,4.4,4.4";
-  std::string dropLayers="";
-  if(argc>5) absThickW = argv[5];
-  if(argc>6) absThickPb = argv[6];
-  if(argc>7) dropLayers = argv[7];
-
-  runManager->SetUserInitialization(new DetectorConstruction(version,model,absThickW,absThickPb,dropLayers));
+  runManager->SetUserInitialization(new DetectorConstruction(geometry, 
+							     config));
   runManager->SetUserInitialization(new PhysicsList);
 
   // Set user action classes
-  runManager->SetUserAction(new PrimaryGeneratorAction(model,eta));
+  int model=geometry.model();
+  double eta=0;
+  runManager->SetUserAction(new PrimaryGeneratorAction(model, eta));
   runManager->SetUserAction(new RunAction);
   runManager->SetUserAction(new EventAction);
   runManager->SetUserAction(new SteppingAction);
@@ -64,30 +110,11 @@ int main(int argc,char** argv)
   G4VisManager* visManager = new G4VisExecutive;
   visManager->Initialize();
 
-  // Get the pointer to the User Interface manager
+  // Start User Interface manager
   G4UImanager* UImanager = G4UImanager::GetUIpointer();
-  G4String fileName;
-  if (argc>1) fileName = argv[1];
-  if (argc!=1)   // batch mode
-    {    
-      std::cout << " ====================================== " << std::endl
-		<< " ========  Running batch mode ========= " << std::endl
-		<< " ====================================== " << std::endl;
-      G4String command = "/control/execute ";
-      UImanager->ApplyCommand(command+fileName);
-    }
-  else
-    {
-      std::cout << " ====================================== " << std::endl
-		<< " ====  Running interactive display ==== " << std::endl
-		<< " ====================================== " << std::endl;
-      G4UIExecutive* ui = new G4UIExecutive(argc, argv);
-      UImanager->ApplyCommand("/control/execute vis.mac"); 
-      if (ui->IsGUI())
-        UImanager->ApplyCommand("/control/execute gui.mac");
-      ui->SessionStart();
-      delete ui;
-    }
+  G4String command = "/control/execute " + macroFile; 
+  UImanager->ApplyCommand(command);
+ 
   delete visManager;
   delete runManager;
   return 0;

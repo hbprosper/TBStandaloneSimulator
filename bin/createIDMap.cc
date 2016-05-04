@@ -114,7 +114,7 @@ int main(int argc, char **argv)
   // subset of which lie within the hexagonal boundary
   // that defines a sensor
   // ----------------------------------------------------------
-  HGCSSGeometryConversion geom(MODEL, CELL_SIDE);
+  HGCSSGeometryConversion geom(MODEL, WIDTH, CELL_SIDE);
   geom.initialiseHoneyComb(WIDTH, CELL_SIDE);
   TH2Poly* map = geom.hexagonMap();
 

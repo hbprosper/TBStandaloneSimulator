@@ -11,5 +11,5 @@
 
 <bin   name="createIDMap" file="createIDMap.cc"></bin>
 <bin   name="simulateTB"  file="simulateTB.cc"></bin>
-<bin   name="digitizeTB"  file="digitizeTB.cc"></bin>
+
 

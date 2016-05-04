@@ -1,22 +1,23 @@
 #ifndef EventAction_h
 #define EventAction_h 1
 
-#include "SamplingSection.hh"
+
 
 #include "G4ThreeVector.hh"
 #include "G4UserEventAction.hh"
 #include "globals.hh"
 
 #include "TFile.h"
-//#include "TNtuple.h"
 #include "TTree.h"
-#include "SamplingSection.hh"
-#include "G4SiHit.hh"
-#include "HGCSSEvent.hh"
-#include "HGCSSSamplingSection.hh"
-#include "HGCSSSimHit.hh"
-#include "HGCSSGenParticle.hh"
-#include "HGCSSGeometryConversion.hh"
+
+#include "HGCal/TBStandaloneSimulator/interface/SamplingSection.hh"
+#include "HGCal/TBStandaloneSimulator/interface/G4SiHit.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSEvent.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSSamplingSection.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSSimHit.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSGenParticle.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSGeometryConversion.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSTrackSegment.h"
 
 #include <vector>
 #include <map>
@@ -33,18 +34,18 @@ public:
   void BeginOfEventAction(const G4Event*);
   void EndOfEventAction(const G4Event*);
 
+  void Store(G4int trackId, G4int pdgId, G4double globalTime,
+	     const G4ThreeVector& p1, const G4ThreeVector& p2,
+	     const G4ThreeVector& p);
+
   void Detect(G4double edep, G4double stepl,G4double globalTime, G4int pdgId, 
 	      G4VPhysicalVolume *volume, const G4ThreeVector & position,
 	      G4int trackID, G4int parentID,
 	      const HGCSSGenParticle & genPart);
-  
-  //void Detect(G4double edep, G4double stepl,G4double globalTime, G4int pdgId, G4VPhysicalVolume *volume,int iyiz);
 
   void SetPrintModulo(G4int    val)  {printModulo = val;};
-  void Add( std::vector<SamplingSection> *newDetector ) { detector_=newDetector; }
-  //Float_t GetCellSize() { return cellSize_; }
-
-  //std::ofstream & fout() {return fout_;}
+  void Add( std::vector<SamplingSection> *newDetector ) 
+  { detector_=newDetector; }
 
   bool isFirstVolume(const std::string volname) const;
 
@@ -52,6 +53,8 @@ private:
   RunAction*  runAct;
   std::vector<SamplingSection> *detector_;
   G4int     evtNb_,printModulo;
+
+  bool saveTracks;
 
   HGCSSGeometryConversion* geomConv_;
 
@@ -61,9 +64,8 @@ private:
   HGCSSSamplingSectionVec ssvec_;
   HGCSSSimHitVec hitvec_;
   HGCSSGenParticleVec genvec_;
+  HGCSSTrackSegmentVec trkvec_;
   EventActionMessenger*  eventMessenger;
-  //std::ofstream fout_;
-
 };
 
 #endif

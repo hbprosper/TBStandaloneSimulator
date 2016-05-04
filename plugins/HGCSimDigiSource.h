@@ -20,7 +20,7 @@
 
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "HGCal/CondObjects/interface/HGCalElectronicsMap.h"
-#include "HGCal/TBStandaloneSimulator/interface/HGCSSRecoHit.hh"
+#include "HGCal/TBStandaloneSimulator/interface/HGCSSSimHit.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
 
 class HGCSimDigiSource : public edm::ProducerSourceFromFiles
@@ -34,16 +34,49 @@ class HGCSimDigiSource : public edm::ProducerSourceFromFiles
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
+  struct Cell
+  {
+    int skiroc;      // SKIROC number
+    int channel;     // channel number
+    DetId detid;     // detector id
+    uint16_t ADClow;
+    uint16_t ADChigh;
+    uint16_t TDC;
+    int layer;
+    int sensor_u;
+    int sensor_v;
+    int u;
+    int v;
+    int celltype;
+    double x;
+    double y;
+    double energy;
+
+    bool operator<(HGCSimDigiSource::Cell& o)
+    {
+      // negate skiroc number so that
+      // SKIROC 2 occurs before SKIROC 1
+      int lhs = -100000*skiroc + channel;
+      int rhs = -100000*o.skiroc + o.channel;
+      return lhs < rhs; 
+    }
+  };
+
 private:
   virtual bool setRunAndEventInfo(edm::EventID& id, 
 				  edm::TimeValue_t& time, 
 				  edm::EventAuxiliary::ExperimentType&);
 
-  virtual void produce(edm::Event & e);
+  virtual void produce(edm::Event& e);
+
+  virtual void digitize(std::vector<HGCSimDigiSource::Cell>& channels);
+
+  virtual void addNoise(uint16_t& adc);
 
   int _run;
   int _maxevents;
   int _minadccount;
+  double _adcpermev;
   std::vector<std::string> _filenames;  ///<name of input sim files
 
   /// Sim objects
@@ -53,7 +86,7 @@ private:
   size_t  _entry;
   HGCCellMap  _cellmap;
   HGCalElectronicsMap _emap;
-  HGCSSRecoHitVec*  _recohits;
+  HGCSSSimHitVec*  _simhits;
 };
 
 

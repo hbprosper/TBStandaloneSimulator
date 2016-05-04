@@ -27,7 +27,7 @@ HGCCellMap::HGCCellMap(string inputFilename)
     _xymap(map<pair<int, int>, pair<double, double> >()),
     _celltype(map<int, map<pair<int, int>, int> >()),
     _eidmap(map<int, map<pair<int, int>, pair<int, int> > >()),
-    _geom(HGCSSGeometryConversion(MODEL, CELL_SIDE)),
+    _geom(HGCSSGeometryConversion(MODEL, WIDTH, CELL_SIDE)),
     _map(0),
     _cells(map<int, vector<HGCCellMap::Cell> >())
 {

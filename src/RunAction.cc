@@ -79,6 +79,12 @@ void RunAction::fillPerEvent(G4double EAbs, G4double EGap,
 void RunAction::EndOfRunAction(const G4Run* aRun)
 {
   G4int NbOfEvents = aRun->GetNumberOfEvent();
+
+  // A hack to avoid compiler warning
+  int hack = CLHEP::HepRandomGenActive;
+  hack = NbOfEvents;
+  NbOfEvents = hack;
+
   if (NbOfEvents == 0) return;
   
   G4cout

@@ -19,6 +19,7 @@ process.source = cms.Source ("HGCSimDigiSource",
                              runNumber  = cms.untracked.int32(101),
                              maxEvents  = cms.untracked.int32(-1),
                              minADCCount= cms.untracked.int32(1),
+                             ADCperMeV  = cms.untracked.double(182.5),
                              fileNames  = cms.untracked.vstring(filelist)
                              )
 
@@ -26,7 +27,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("HGCal_digi_32GeV_electrons.root")
+                               ("HGCal_digi_32GeV_electrons_NEW.root")
                                )
 
 process.outpath = cms.EndPath(process.out)

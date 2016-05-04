@@ -34,25 +34,20 @@
 #include "HGCal/TBStandaloneSimulator/interface/PhysicsList.hh"
 #include "HGCal/TBStandaloneSimulator/interface/DetectorConstruction.hh"
 #include "G4RunManager.hh"
-
 #include "G4ProcessManager.hh"
-
-// #include "G4BosonConstructor.hh"
-// #include "G4LeptonConstructor.hh"
-// #include "G4MesonConstructor.hh"
-// #include "G4BosonConstructor.hh"
-// #include "G4BaryonConstructor.hh"
-// #include "G4IonConstructor.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UnitsTable.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-//PhysicsList::PhysicsList():  QGSP_FTFP_BERT() //G4VUserPhysicsList()
-PhysicsList::PhysicsList():  QGSP_BERT() //G4VUserPhysicsList()
+PhysicsList::PhysicsList():  QGSP_BERT()
 {
+  // A hack to avoid compiler warning
+  int level = CLHEP::HepRandomGenActive;
+  level=1;
+
   defaultCutValue = 0.03*mm;
-  SetVerboseLevel(1);
+  SetVerboseLevel(level);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -223,13 +218,11 @@ void PhysicsList::SetCuts()
   SetCutValue(0.7*mm, "e-");
   SetCutValue(0.7*mm, "e+");
   SetCutValue(0.7*mm, "proton");
-  //SetCutValue(defaultCutValue, "gamma");
-  //SetCutValue(defaultCutValue, "e-");
-  //SetCutValue(defaultCutValue, "e+");
-  //SetCutValue(defaultCutValue, "proton");
 
-   //set smaller cut for Si
-   const std::vector<G4LogicalVolume*> & logSi = ((DetectorConstruction*)G4RunManager::GetRunManager()->GetUserDetectorConstruction())->getSiLogVol();
+  //set smaller cut for Si
+  const std::vector<G4LogicalVolume*>& logSi 
+    = ((DetectorConstruction*)G4RunManager::GetRunManager()->
+       GetUserDetectorConstruction())->getSiLogVol();
 
   for(size_t i=0; i<logSi.size(); i++)
     {
@@ -239,18 +232,6 @@ void PhysicsList::SetCuts()
       cuts->SetProductionCut(defaultCutValue);
       reg->SetProductionCuts(cuts);    
     }
-
-  //  //set smaller cut for Cu just before Si
-  // const std::vector<G4LogicalVolume*> & logCu = ((DetectorConstruction*)G4RunManager::GetRunManager()->GetUserDetectorConstruction())->getAbsLogVol();
-  
-  // for(size_t i=0; i<logCu.size(); i++)
-  //   {
-  //     //sprintf(nameBuf,"Si%dReg",int(i+1)); 
-  //     G4Region* reg = logCu[i]->GetRegion();
-  //     G4ProductionCuts* cuts = new G4ProductionCuts;
-  //     cuts->SetProductionCut(defaultCutValue);
-  //     reg->SetProductionCuts(cuts);    
-  //   }
 
   if (verboseLevel>0) DumpCutValuesTable();
 }

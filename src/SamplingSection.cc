@@ -1,6 +1,74 @@
+#include <cassert>
 #include "G4VPhysicalVolume.hh"
-
+#include "G4SystemOfUnits.hh"
 #include "HGCal/TBStandaloneSimulator/interface/SamplingSection.hh"
+
+using namespace std;
+
+SamplingSection::SamplingSection(std::vector<TBGeometry::Element>& 
+				 elements_)
+  : elements(elements_)
+{
+  G4cout << " -- BEGIN(sampling section)" << G4endl;
+  
+  Total_thick = 0;
+  n_sens_elements=0;
+  n_elements=0;
+  ele_name.clear();
+  ele_X0.clear();
+  ele_L0.clear();
+  ele_vol.clear();
+  hasScintillator = false;
+  n_elements = elements.size();
+
+  for(size_t c=0; c < elements.size(); c++)
+    {
+      TBGeometry::Element& e = elements[c];
+      G4double units = mm;
+      string theunits= e.smap["units"];
+      if      ( theunits == "m" )
+	units = m;
+      else if ( theunits == "cm" )
+	units = cm;
+      
+      bool isSensitive = static_cast<bool>(e.imap["sensitive"]);
+      string material  = e.smap["material"];
+      double thickness = e.dmap["thickness"]*units;
+      double zpos      = e.dmap["z"]*units;
+
+      if ( material == "Scintillator" ) hasScintillator = true;
+
+      ele_name.push_back(material);
+      ele_thick.push_back(thickness);
+      ele_X0.push_back(0);
+      ele_dEdx.push_back(0);
+      ele_L0.push_back(0);
+      ele_vol.push_back(0);
+
+      Total_thick += thickness;
+
+      if ( isSensitive ) 
+	{
+	  G4SiHitVec lVec;
+	  sens_HitVec.push_back(lVec);
+	}
+
+      cout << "\tmaterial: " << material
+	   << "\tthickness: " << thickness << theunits
+	   << "\tz: " << zpos;
+      if ( isSensitive ) cout << " <=== sensitive";
+      cout << endl;
+    }
+  n_sens_elements = sens_HitVec.size();
+
+  sens_HitVec_size_max = 0;
+  resetCounters();
+
+  cout << "        number of elements:           " << n_elements  << endl
+       << "        number of sensitive elements: " << n_sens_elements << endl
+       << " -- END(sampling section)" << endl
+       << endl;
+}
 
 //
 void SamplingSection::add(G4double den, G4double dl, 
@@ -11,44 +79,43 @@ void SamplingSection::add(G4double den, G4double dl,
 			  G4int layerId)
 {
   std::string lstr = vol->GetName();
-  for (unsigned ie(0); ie<n_elements*n_sectors;++ie){
-    if(ele_vol[ie] && lstr==ele_vol[ie]->GetName()){ 
-      unsigned eleidx = ie%n_elements;
-      ele_den[eleidx]+=den;
-      ele_dl[eleidx]+=dl; 
-      //if (lstr.find("CFMix") != lstr.npos) continue;
-      if (isSensitiveElement(eleidx)) {//if Si || sci
-	unsigned idx = getSensitiveLayerIndex(lstr);
-	//std::cout << "sens layer " << idx << " " << lstr << std::endl;
-	sens_time[idx]+=den*globalTime;
+  for (size_t ie(0); ie < n_elements; ++ie)
+    {
+      if(ele_vol[ie] && lstr==ele_vol[ie]->GetName())
+	{ 
+	  size_t eleidx = ie;
+	  ele_den[eleidx]+=den;
+	  ele_dl[eleidx]+=dl; 
+	  if (isSensitiveElement(eleidx)) 
+	    {
+	      size_t idx = getSensitiveLayerIndex(lstr);
+	      sens_time[idx]+=den*globalTime;
 	
-	//discriminate further by particle type
-	if(abs(pdgId)==22)      sens_gFlux[idx] += den;
-	else if(abs(pdgId)==11) sens_eFlux[idx] += den;
-	else if(abs(pdgId)==13) sens_muFlux[idx] += den;
-	else if (abs(pdgId)==2112) sens_neutronFlux[idx] += den;
-	else {
-	  sens_hadFlux[idx] += den;
-	}
+	      //discriminate further by particle type
+	      if(abs(pdgId)==22)      sens_gFlux[idx] += den;
+	      else if(abs(pdgId)==11) sens_eFlux[idx] += den;
+	      else if(abs(pdgId)==13) sens_muFlux[idx] += den;
+	      else if (abs(pdgId)==2112) sens_neutronFlux[idx] += den;
+	      else {
+		sens_hadFlux[idx] += den;
+	      }
 	
-	//add hit
-	G4SiHit lHit;
-	lHit.energy = den;
-	lHit.time = globalTime;
-	lHit.pdgId = pdgId;
-	lHit.layer = layerId;
-	lHit.hit_x = position.x();
-	lHit.hit_y = position.y();
-	lHit.hit_z = position.z();
-	lHit.trackId = trackID;
-	lHit.parentId = parentID;
-	sens_HitVec[idx].push_back(lHit);
-
-      }//if Si
-    }//if in right material
-    
-  }//loop on available materials
-  
+	      //add hit
+	      G4SiHit lHit;
+	      lHit.energy= den;
+	      lHit.time  = globalTime;
+	      lHit.pdgId = pdgId;
+	      lHit.layer = layerId;
+	      lHit.hit_x = position.x();
+	      lHit.hit_y = position.y();
+	      lHit.hit_z = position.z();
+	      lHit.trackId = trackID;
+	      lHit.parentId = parentID;
+	      sens_HitVec[idx].push_back(lHit);
+	    }//if Si
+	}//if in right material
+      
+    }//loop on available materials
 }
 
 //
@@ -154,7 +221,6 @@ G4double SamplingSection::getMeasuredEnergy(bool weighted)
 //
 G4double SamplingSection::getAbsorberX0()
 {
-  // G4cout << Pb_thick << " " << Pb_X0 << G4endl;
   double val=0;  
   for (unsigned ie(0); ie<n_elements;++ie){
     if (isAbsorberElement(ie))
@@ -165,7 +231,6 @@ G4double SamplingSection::getAbsorberX0()
 //
 G4double SamplingSection::getAbsorberdEdx()
 {
-  // G4cout << Pb_thick << " " << Pb_X0 << G4endl;
   double val=0;  
   for (unsigned ie(0); ie<n_elements;++ie){
     if (isAbsorberElement(ie))
@@ -206,18 +271,20 @@ G4double SamplingSection::getTotalEnergy()
 }
 
 const G4SiHitVec & SamplingSection::getSiHitVec(const unsigned & idx) const
-{
+{ 
+  assert(sens_HitVec.size()>0);
   return sens_HitVec[idx];
 }
 
-void SamplingSection::trackParticleHistory(const unsigned & idx, const G4SiHitVec & incoming)
+void SamplingSection::trackParticleHistory(const unsigned & idx, 
+					   const G4SiHitVec & incoming)
 {
   for (unsigned iP(0); iP<sens_HitVec[idx].size(); ++iP){//loop on g4hits
     G4int parId = sens_HitVec[idx][iP].parentId;
     for (unsigned iI(0); iI<incoming.size(); ++iI){//loop on previous layer
       G4int trId = incoming[iI].trackId;
-      if (trId == parId) sens_HitVec[idx][iP].parentId = incoming[iI].parentId;
+      if (trId == parId) 
+	sens_HitVec[idx][iP].parentId = incoming[iI].parentId;
     }//loop on previous layer
   }//loop on g4hits
-  //  return sens_HitVec;
 }
