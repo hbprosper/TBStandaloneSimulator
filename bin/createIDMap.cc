@@ -322,7 +322,6 @@ int main(int argc, char **argv)
 	  csensor.cd();
 	  sprintf(record, "%d", binnumber);
 	  text.DrawText(x, y, record); 
-      
 	  cuv.cd();
 	  sprintf(record, "%d,%d", u, v);
 	  text.DrawText(x, y, record); 

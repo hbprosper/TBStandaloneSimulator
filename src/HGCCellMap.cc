@@ -62,8 +62,6 @@ HGCCellMap::HGCCellMap(string inputFilename)
 	 >> skiroc >> channel >> celltype 
 	 >> x >> y)
     {
-      int key = makeKey(layer, sensor_u, sensor_v);
-
       pair<int, int> uv(u, v);
       if ( layer == 1 )
 	{
@@ -84,6 +82,8 @@ HGCCellMap::HGCCellMap(string inputFilename)
       cell.count = 0;
       cell.posid = posid;
       cell.celltype = celltype;
+
+      int key = makeKey(layer, sensor_u, sensor_v);
 
       if ( _cells.find(key) == _cells.end() ) 
 	_cells[key] = std::vector<HGCCellMap::Cell>(); 
@@ -140,14 +140,15 @@ HGCCellMap::uv2eid(int layer, int sensor_u, int sensor_v, int u, int v)
   int key = makeKey(layer, sensor_u, sensor_v);
   if ( _eidmap.find(key) != _eidmap.end() )
     {
+      map<pair<int, int>, pair<int, int> >& eid = _eidmap[key];
       pair<int, int> uv(u, v);
-      if ( _eidmap[key].find(uv) != _eidmap[key].end() )
-	return _eidmap[key][uv];
+      if ( eid.find(uv) != eid.end() )
+	return eid[uv];
       else
 	return pair<int, int>(-123456, -123456);
     }
   else
-    return pair<int, int>(-123456, -123456);
+    return pair<int, int>(-999999, -999999);
 }
 
 pair<int, int>

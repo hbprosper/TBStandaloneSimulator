@@ -34,7 +34,7 @@ HGCSimDigiSource::HGCSimDigiSource
 {
   // collections to be produced
   produces<SKIROC2DigiCollection>();
-  //produces<HGCSSGenParticleVec>();
+  produces<HGCSSSimHitVec>();
 
   // create a chain of files
   _chain = new TChain("HGCSSTree");
@@ -95,11 +95,11 @@ void HGCSimDigiSource::produce(edm::Event& event)
   // auto_ptr own objects they point to and are 
   // automatically deleted when out of scope
 
-  // // add sim hits to event
-  // std::auto_ptr<HGCSSSimHitVec> simhits(new HGCSSSimHitVec());
-  // for(size_t c=0; c < _simhits->size(); c++)
-  //   simhits->push_back((*_simhits)[c]);
-  // event.put(simhits);
+  // add sim hits to event
+  std::auto_ptr<HGCSSSimHitVec> simhits(new HGCSSSimHitVec());
+  for(size_t c=0; c < _simhits->size(); c++)
+    simhits->push_back((*_simhits)[c]);
+  event.put(simhits);
 
   // create skiroc digi objects and put in event
   std::auto_ptr<SKIROC2DigiCollection> 
@@ -128,6 +128,7 @@ void HGCSimDigiSource::produce(edm::Event& event)
 		  cell.skiroc, cell.channel, 
 		  cell.u, cell.v, cell.x, cell.y);
 	  cout << record << endl;
+	  assert(cell.channel > -1);
 	}
     }
   event.put(digis);
@@ -141,19 +142,20 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
     {
       HGCSSSimHit& simhit = (*_simhits)[c];
       double energy = simhit.energy();
-      int cellid    = simhit.cellid();
-      int layer     = simhit.layer();
-      if ( hits.find(cellid) != hits.end() )
+      int cellid = simhit.cellid();
+      int layer = simhit.silayer()+1;
+      if ( hits.find(cellid) == hits.end() )
 	{
 	  HGCSimDigiSource::Cell cell;
 	  cell.ADClow = 0;
 	  cell.TDC    = 0;
 	  cell.energy = 0.0;
-	  cell.layer  = layer + 1;
+	  cell.layer  = layer;
 
 	  pair<int, int> uv = _cellmap(cellid); 
 	  cell.u = uv.first;
 	  cell.v = uv.second;
+	  assert(cell.u > -1000);
 
 	  pair<double, double> xy =_cellmap.uv2xy(cell.u, cell.v);
 	  cell.x = xy.first;
@@ -174,7 +176,7 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
       int cellid = it->first;
       HGCSimDigiSource::Cell& cell = hits[cellid];
 
-      cell.ADChigh = static_cast<uint16_t>(cell.energy*_adcpermev);
+      cell.ADChigh = static_cast<uint16_t>(_adcpermev*cell.energy);
 
       // now add noise
       addNoise(cell.ADChigh);
@@ -195,6 +197,7 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
       pair<int, int> eid = _cellmap.uv2eid(cell.layer,
 					   cell.sensor_u, cell.sensor_v, 
 					   cell.u, cell.v);
+  
       cell.skiroc = eid.first;
       cell.channel= eid.second;
       channels.push_back(cell); 

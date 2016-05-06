@@ -187,27 +187,46 @@ void DetectorConstruction::UpdateCalorSize()
       for (unsigned ie(0); ie < nEle; ++ie)
 	{
 	  TBGeometry::Element e = section.getElement(ie);
+
+
+
+	  // get the XY extent of the sensitive layers
+	  bool isSensitive = false;
+	  if ( e.imap.find("sensitive") != e.imap.end() )
+	    isSensitive = static_cast<bool>(e.imap["sensitive"]);
+
 	  G4double units = getUnits(section.ele_name[ie], e);
 	  if      ( e.smap["shape"] ==  "cylinder" )
 	    {
-	      G4double maxR = getParameter(section.ele_name[ie], 
-					   e, "maxRadius")*units;
-	      if ( maxR > m_CalorSizeXY ) m_CalorSizeXY = maxR;
+	      if ( isSensitive )
+		{
+		  G4double maxR = getParameter(section.ele_name[ie], 
+					       e, "maxRadius")*units;
+		  if ( maxR > m_CalorSizeXY ) m_CalorSizeXY = maxR;
+		}
 	    } 
 	  else if ( e.smap["shape"] ==  "hexagon" )
 	    {
-	      m_CellSize = getParameter(section.ele_name[ie], 
-					e, "cellsize")*units;
-	      // get center-to-corner distance
-	      G4double width = 2*getParameter(section.ele_name[ie], 
-					      e, "side")*units;
-	      if ( width > m_CalorSizeXY ) m_CalorSizeXY = width;
+	      if ( isSensitive )
+		{
+		  m_CellSize = getParameter(section.ele_name[ie], 
+					    e, "cellsize")*units;
+		  assert(m_CellSize>0);
+
+		  // get center-to-corner distance
+		  G4double width = 2*getParameter(section.ele_name[ie], 
+						  e, "side")*units;
+		  if ( width > m_CalorSizeXY ) m_CalorSizeXY = width;
+		}
 	    }
 	  else if ( e.smap["shape"] ==  "square" )
 	    {
-	      G4double side = getParameter(section.ele_name[ie], 
-					   e, "side")*units;
-	      if ( side > m_CalorSizeXY ) m_CalorSizeXY = side;
+	      if ( isSensitive )
+		{
+		  G4double side = getParameter(section.ele_name[ie], 
+					       e, "side")*units;
+		  if ( side > m_CalorSizeXY ) m_CalorSizeXY = side;
+		}
 	    }	  
 	}
     }
@@ -216,6 +235,7 @@ void DetectorConstruction::UpdateCalorSize()
   G4cout << "  XY  extent of detector: " << m_CalorSizeXY << u << G4endl;
   G4cout << "  Z   extent of detector: " << m_CalorSizeZ  << u << G4endl;
   G4cout << "  Z location of detector: " << center << u << G4endl;
+  G4cout << "  cell size  of detector: " << m_CellSize  << u << G4endl;
 }
 
 //
@@ -322,7 +342,7 @@ void DetectorConstruction::buildSectorStack()
 	  std::string eleName = element.smap["material"];
 	  sprintf(nameBuf, "%s%d", eleName.c_str(), int(i+1));
 	  // if the element is sensitive, give it a slightly different
-	  // name.
+	  // name. 
 	  bool isSensitive = static_cast<bool>(element.imap["sensitive"]);
 	  if ( isSensitive )
 	    {

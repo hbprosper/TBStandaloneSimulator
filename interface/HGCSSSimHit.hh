@@ -65,21 +65,16 @@ public:
   };
 
   inline unsigned layer() const {
-    return layer_/3;
+    return layer_;
   };
 
   inline unsigned silayer() const {
-    return layer_%3;
+    return silayer_;
   };
 
-
-  //re-encode local layer into det layer + si layer if several sensitive layers (up to 3...)
   inline void setLayer(const unsigned & layer, const unsigned & silayer){
-    if (silayer>2) {
-      std::cerr << " ERROR! Trying to add silayer " << silayer << ", should be less than 3..." << std::endl;
-      exit(1);
-    }
-    layer_ = 3*layer+silayer;
+    layer_ = layer;
+    silayer_ = silayer;
   };
 
   inline unsigned cellid() const {
@@ -138,74 +133,12 @@ public:
 
   void Add(const G4SiHit & aSiHit);
 
-  //void encodeCellId(const bool x_side,const bool y_side,const unsigned x_cell,const unsigned y_cell);
-
-  //inline bool get_x_side() const{
-  //return cellid_ & 0x0001;
-  //};
-
-  //inline bool get_y_side() const {
-  //return (cellid_ & 0x00010000) >> 16;
-  //};
-
-  //inline unsigned get_x_cell() const {
-  //return (cellid_ & 0xFFFE) >> 1;
-  //};
-
-  //inline unsigned get_y_cell() const {
-  // return (cellid_ & 0xFFFE0000) >> 17;
-  //};
-
   std::pair<double,double> get_xy(const bool isScintillator,
 				  const HGCSSGeometryConversion & aGeom) const;
 
   ROOT::Math::XYZPoint position(const bool isScintillator,
 				const HGCSSGeometryConversion & aGeom) const;
 
-  //inline double get_x(TH2Poly* map) const {
-  //float sign = get_x_side() ? 1. : -1. ;
-  //if (sign > 0)
-  //return get_x_cell()*sign*cellSize*getGranularity()+cellSize*getGranularity()/2;
-  //else return get_x_cell()*sign*cellSize*getGranularity()-cellSize*getGranularity()/2;
-  //};
-
-  //inline double get_y(TH2Poly* map) const {
-    //float sign = get_y_side() ? 1. : -1. ;
-    //if (sign > 0)
-    //return get_y_cell()*sign*cellSize*getGranularity()+cellSize*getGranularity()/2;
-    //else return get_y_cell()*sign*cellSize*getGranularity()-cellSize*getGranularity()/2;
-  //};
-  /*
-  inline bool get_x_side_old() const{
-    return cellid_ & 0x0001;
-  };
-
-  inline bool get_y_side_old() const {
-    return (cellid_ & 0x0100) >> 8;
-  };
-
-  inline unsigned get_x_cell_old() const {
-    return (cellid_ & 0x00FE) >> 1;
-  };
-
-  inline unsigned get_y_cell_old() const {
-    return (cellid_ & 0xFE00) >> 9;
-  };
-
-  inline double get_x_old(const float cellSize = CELL_SIZE_X) const {
-    float sign = get_x_side_old() ? 1. : -1. ;
-    if (sign > 0)
-      return get_x_cell_old()*sign*cellSize*getGranularity()+cellSize*getGranularity()/2;
-    else return get_x_cell_old()*sign*cellSize*getGranularity()-cellSize*getGranularity()/2;
-  };
-
-  inline double get_y_old(const float cellSize = CELL_SIZE_Y) const {
-    float sign = get_y_side_old() ? 1. : -1. ;
-    if (sign > 0)
-      return get_y_cell_old()*sign*cellSize*getGranularity()+cellSize*getGranularity()/2;
-    else return get_y_cell_old()*sign*cellSize*getGranularity()-cellSize*getGranularity()/2;
-  };
-  */
 
   inline double get_z() const {
     return zpos_;
@@ -238,6 +171,7 @@ private:
   double time_;
   double zpos_;
   unsigned layer_;
+  unsigned silayer_;
   unsigned cellid_;
   unsigned nGammas_;
   unsigned nElectrons_;
