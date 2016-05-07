@@ -4,6 +4,7 @@
 // -------------------------------------------------------------------------
 #include <fstream>
 #include <iostream>
+#include <cassert>
 #include "TSystem.h"
 #include "HGCal/Geometry/interface/HGCalTBCellParameters.h"
 #include "HGCal/Geometry/interface/HGCalTBCellVertices.h"
@@ -25,11 +26,11 @@ HGCCellMap::HGCCellMap(string inputFilename)
   : _uvmap(map<size_t, pair<int, int> >()),
     _posid(map<pair<int, int>, int>()),
     _xymap(map<pair<int, int>, pair<double, double> >()),
-    _celltype(map<int, map<pair<int, int>, int> >()),
-    _eidmap(map<int, map<pair<int, int>, pair<int, int> > >()),
+    _celltype(map<uint32_t, int>()),
+    _eidmap(map<uint32_t, pair<int, int> >()),				   
+    _cells(map<uint32_t, vector<HGCCellMap::Cell> >()),
     _geom(HGCSSGeometryConversion(MODEL, WIDTH, CELL_SIDE)),
-    _map(0),
-    _cells(map<int, vector<HGCCellMap::Cell> >())
+    _map(0)
 {
   if ( inputFilename == "" )
     inputFilename=string("$CMSSW_BASE/src/HGCal/TBStandaloneSimulator/data/"
@@ -83,19 +84,19 @@ HGCCellMap::HGCCellMap(string inputFilename)
       cell.posid = posid;
       cell.celltype = celltype;
 
-      int key = makeKey(layer, sensor_u, sensor_v);
-
+      HGCalTBDetId detid1(layer, sensor_u, sensor_v, 0, 0, 0);
+      uint32_t key = detid1.rawId();
       if ( _cells.find(key) == _cells.end() ) 
 	_cells[key] = std::vector<HGCCellMap::Cell>(); 
       _cells[key].push_back(cell);
 
-      if ( _celltype.find(key) == _celltype.end() )
-	_celltype[key] = map<pair<int, int>, int>();
-      _celltype[key][uv] = celltype;
+      HGCalTBDetId detid2(layer, sensor_u, sensor_v, u, v, 0);
+      key = detid2.rawId();
+      // the raw ID should be unique; make sure it is
+      assert( _celltype.find(key) == _celltype.end() );
 
-      if ( _eidmap.find(key) == _eidmap.end() ) 
-	_eidmap[key] = map<pair<int, int>, pair<int, int> >();
-      _eidmap[key][uv] = pair<int, int>(skiroc, channel);
+      _celltype[key] = celltype;
+      _eidmap[key] = pair<int, int>(skiroc, channel);
     }
   fin.close();
 }
@@ -107,7 +108,8 @@ HGCCellMap::~HGCCellMap()
 std::vector<HGCCellMap::Cell>
 HGCCellMap::cells(int layer, int sensor_u, int sensor_v) 
 {
-  int key = makeKey(layer, sensor_u, sensor_v);
+  HGCalTBDetId detid(layer, sensor_u, sensor_v, 0, 0, 0);
+  int key = detid.rawId();
   if ( _cells.find(key) != _cells.end() )
     return _cells[key];
   else
@@ -137,18 +139,12 @@ HGCCellMap::uv2xy(int u, int v)
 pair<int, int>
 HGCCellMap::uv2eid(int layer, int sensor_u, int sensor_v, int u, int v)
 {
-  int key = makeKey(layer, sensor_u, sensor_v);
+  HGCalTBDetId detid(layer, sensor_u, sensor_v, u, v, 0);
+  int key = detid.rawId();
   if ( _eidmap.find(key) != _eidmap.end() )
-    {
-      map<pair<int, int>, pair<int, int> >& eid = _eidmap[key];
-      pair<int, int> uv(u, v);
-      if ( eid.find(uv) != eid.end() )
-	return eid[uv];
-      else
-	return pair<int, int>(-123456, -123456);
-    }
+    return _eidmap[key];
   else
-    return pair<int, int>(-999999, -999999);
+    return pair<int, int>(-123456, -123456);
 }
 
 pair<int, int>
@@ -161,15 +157,10 @@ HGCCellMap::xy2uv(double x, double y)
 int
 HGCCellMap::celltype(int layer, int sensor_u, int sensor_v, int u, int v)
 {
-  int key = makeKey(layer, sensor_u, sensor_v);
+  HGCalTBDetId detid(layer, sensor_u, sensor_v, u, v, 0);
+  int key = detid.rawId();
   if ( _celltype.find(key) != _celltype.end() )
-    {
-      pair<int, int> uv(u, v);
-      if ( _celltype[key].find(uv) != _celltype[key].end() )
-	return _celltype[key][uv];
-      else
-	return -123456;
-    }
+    return _celltype[key];
   else
     return -123456;
 }

@@ -5,9 +5,10 @@
 <use name="FWCore/ServiceRegistry"/>
 <use name="FWCore/PythonParameterSet"/>
 <use name="FWCore/Utilities"/>
+<use name="HGCal/DataFormats"/>
+
 <use name="boost"/>
 <use name="boost_python"/>
-
 <use name="root"/>  
 <use name="fastjet"/>
 <use name="hepmc"/>

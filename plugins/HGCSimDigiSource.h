@@ -10,6 +10,7 @@
 
 #include "TChain.h"
 #include "TTree.h"
+#include "TRandom3.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -22,6 +23,7 @@
 #include "HGCal/CondObjects/interface/HGCalElectronicsMap.h"
 #include "HGCal/TBStandaloneSimulator/interface/HGCSSSimHit.hh"
 #include "HGCal/TBStandaloneSimulator/interface/HGCCellMap.h"
+#include "HGCal/DataFormats/interface/HGCalTBDataFrameContainers.h"
 
 class HGCSimDigiSource : public edm::ProducerSourceFromFiles
 {
@@ -71,13 +73,13 @@ private:
 
   virtual void digitize(std::vector<HGCSimDigiSource::Cell>& channels);
 
-  virtual void addNoise(uint16_t& adc);
-
   int _run;
   int _maxevents;
   int _minadccount;
-  double _adcpermev;
-  std::vector<std::string> _filenames;  ///<name of input sim files
+  double _adcpermip;
+  double _mippermev;
+  std::vector<std::string> _filenames;       ///<name of input sim files
+  std::vector<std::string> _noisefilenames;  ///<name of input pedestal files
 
   /// Sim objects
   TChain* _chain;
@@ -87,6 +89,14 @@ private:
   HGCCellMap  _cellmap;
   HGCalElectronicsMap _emap;
   HGCSSSimHitVec*  _simhits;
+
+  /// noise objects
+  TChain* _noisechain;
+  TTree*  _noisetree;
+  size_t  _noiseentries;
+  size_t  _noiseentry;
+  TRandom3 _random;
+  std::vector<std::map<uint32_t, uint16_t> > _noise;
 };
 
 

@@ -4,17 +4,19 @@
 // Created  April 2016 Harrison B. Prosper
 // Updated: 04-23-2016 HBP use HGCCellMap to get mapping from (u, v) to
 //                     (skiroc, channel id)
-//          05-03
+//          05-03-2016 HBP add noise code
 // -------------------------------------------------------------------------
 #include <iostream>
 #include <algorithm>
 #include "FWCore/Framework/interface/InputSourceMacros.h"
 #include "HGCal/TBStandaloneSimulator/plugins/HGCSimDigiSource.h"
-#include "HGCal/DataFormats/interface/HGCalTBDataFrameContainers.h"
-#include "HGCal/DataFormats/interface/SKIROCParameters.h"
 #include "HGCal/DataFormats/interface/HGCalTBDetId.h"
 // -------------------------------------------------------------------------
 using namespace std;
+
+namespace {
+  const size_t debugCount=5;
+};
 
 HGCSimDigiSource::HGCSimDigiSource
 (const edm::ParameterSet& pset, edm::InputSourceDescription const& desc) 
@@ -22,21 +24,33 @@ HGCSimDigiSource::HGCSimDigiSource
      _run(pset.getUntrackedParameter<int>("runNumber", 101)),
      _maxevents(pset.getUntrackedParameter<int>("maxEvents", -1)),
      _minadccount(pset.getUntrackedParameter<int>("minADCCount", 1)),
-     _adcpermev(pset.getUntrackedParameter<double>("ADCperMeV", 182.5)),
-     _filenames(pset.getUntrackedParameter<std::vector<std::string> >
+     _adcpermip(pset.getUntrackedParameter<double>("ADCperMIP", 8.2)),
+     _mippermev(pset.getUntrackedParameter<double>("MIPperMeV", 18.25)),
+     _filenames(pset.getUntrackedParameter<vector<string> >
 		("fileNames")),
+     _noisefilenames(pset.getUntrackedParameter<vector<string> >
+		("noiseFileNames")),
      _chain(0),              // chain of files
      _tree(0),               // sim tree
      _entries(0),            // number of simulated events
      _entry(0),              // entry number,
      _cellmap(HGCCellMap()), // cell id to (u, v) map and (x, y) to (u, v)
-     _simhits(0)
+     _simhits(0),
+
+     _noisechain(0),         // chain of files
+     _noisetree(0),          // sim tree
+     _noiseentries(0),       // number of simulated events
+     _noiseentry(0),         // entry number
+     _random(TRandom3()),
+     _noise(vector<map<uint32_t, uint16_t> >())
 {
-  // collections to be produced
+  // collections to be saved
   produces<SKIROC2DigiCollection>();
   produces<HGCSSSimHitVec>();
 
+  // ------------------------------------------------------
   // create a chain of files
+  // ------------------------------------------------------
   _chain = new TChain("HGCSSTree");
   if ( !_chain )
     throw cms::Exception("ChainCreationFailed", "chain: HGCSSTree");
@@ -49,19 +63,83 @@ HGCSimDigiSource::HGCSimDigiSource
   _entries = _maxevents < 0  
     ? _entries 
     : (_entries < (size_t)_maxevents ? _entries : _maxevents);
-  std::cout << std::endl
-  	    << "==> Number of simulated events to read: " 
-  	    << _entries
-  	    << std::endl;
+  cout << endl
+       << "==> Number of simulated events to read: " 
+       << _entries
+       << endl;
 
   // map input tree to sim object pointers
   _tree = (TTree*)_chain;
   _tree->SetBranchAddress("HGCSSSimHitVec", &_simhits);
+
+  // ------------------------------------------------------
+  // read in noise mode
+  // ------------------------------------------------------
+  if ( _noisefilenames.size() > (size_t)0 )
+    {
+      _noisechain = new TChain("Pedestals");
+      if ( !_noisechain )
+	throw cms::Exception("ChainCreationFailed", "chain: Pedestals");
+      
+      for(size_t c=0; c < _noisefilenames.size(); c++)
+	_noisechain->Add(_noisefilenames[c].c_str());
+      
+      // determine number of noise events to read
+      _noiseentries = _noisechain->GetEntries(); 
+
+      // map input tree to object pointers
+      vector<long>* vkey=0;
+      vector<unsigned short>* vadc=0;
+      _noisetree = (TTree*)_noisechain;
+      _noisetree->SetBranchAddress("vkey", &vkey);
+      _noisetree->SetBranchAddress("vadc", &vadc);
+
+      cout << "==> Creating noise model from file with "
+	   << _noiseentries 
+	   << " pedestal events" 
+	   << endl;
+
+      int N=0;
+      double a1 = 0.0;
+      double a2 = 0.0;
+      for(size_t entry=0; entry < _noiseentries; entry++)	
+	{
+	  long localentry = _noisechain->LoadTree(entry);
+	  _noisetree->GetEntry(localentry);
+	  _noise.push_back(map<uint32_t, uint16_t>());
+	  if ( entry % 500 == 0 ) cout << entry << endl;
+
+	  for(size_t c=0; c < vkey->size(); c++)
+	    {
+	      long key  = (*vkey)[c];
+	      uint16_t adc = (*vadc)[c];
+	      _noise[entry][key] = adc; 
+	      a1 += adc;
+	      a2 += adc*adc;
+	      N++;
+	    }	       
+	}
+      a1 /= N;
+      a2 /= N;
+      a2 = sqrt(a2-a1*a1);
+      char rec[256];
+      sprintf(rec, "==> pedestal = %8.1f +/-%-8.1f", a1, a2);
+      cout << rec << endl;
+      cout << "==> Done loading noise model"
+	   << endl;
+    }
+  else
+    {
+      cout << "==> No noise will be added" 
+	   << _noiseentries
+	   << endl;
+    }
 }
 
 HGCSimDigiSource::~HGCSimDigiSource() 
 {
   if ( _chain ) delete _chain;
+  if ( _noisechain ) delete _noisechain;
 }
 
 bool HGCSimDigiSource::
@@ -82,7 +160,7 @@ setRunAndEventInfo(edm::EventID& id,
   // construct event info
   id = edm::EventID(_run, 1, _entry);
 
-  // time is a hack
+  // FIXME: time hack
   edm::TimeValue_t present_time = presentTime();
   unsigned long time_between_events = timeBetweenEvents();
   time = present_time + time_between_events;
@@ -92,6 +170,13 @@ setRunAndEventInfo(edm::EventID& id,
 
 void HGCSimDigiSource::produce(edm::Event& event)
 {
+  if ( _entry < debugCount )
+    {
+      cout << endl 
+	   << "==> entry number: " << _entry 
+	   << endl;
+    }
+
   // auto_ptr own objects they point to and are 
   // automatically deleted when out of scope
 
@@ -106,11 +191,16 @@ void HGCSimDigiSource::produce(edm::Event& event)
     digis(new SKIROC2DigiCollection(SKIROC::MAXSAMPLES));
 
   // sum energies of sim hits in each cell
-  // and convert sums from MeV to ADC count
-  vector< HGCSimDigiSource::Cell> channels;
+  // and convert cell energies from MeV to ADC count
+  vector<HGCSimDigiSource::Cell> channels;
   digitize(channels);
 
   // store digitized data
+  if ( _entry < debugCount )
+    {
+      cout << "    number of digi hits: " << channels.size() << endl;
+    }
+
   for(size_t c = 0; c < channels.size(); c++)
     {
       HGCSimDigiSource::Cell& cell = channels[c];
@@ -119,14 +209,15 @@ void HGCSimDigiSource::produce(edm::Event& event)
 				       cell.ADClow, 
 				       cell.ADChigh,
 				       cell.TDC);
-      if ( _entry < 2 )
+      if ( _entry < debugCount )
 	{
 	  char record[80];
 	  sprintf(record, 
-		  "(SKIROC,channel)=(%2d,%2d)"
-		  " (u,v)=(%2d,%2d), (x,y)=(%6.2f,%6.2f)",
+		  "%6d (ski,chan)=(%2d,%2d)"
+		  " (u,v)=(%2d,%2d), (x,y)=(%6.2f,%6.2f), ADC=(%d)",
+		  (int)(c+1),
 		  cell.skiroc, cell.channel, 
-		  cell.u, cell.v, cell.x, cell.y);
+		  cell.u, cell.v, cell.x, cell.y, cell.ADChigh);
 	  cout << record << endl;
 	  assert(cell.channel > -1);
 	}
@@ -136,81 +227,147 @@ void HGCSimDigiSource::produce(edm::Event& event)
 
 void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
 {
-  // histogram sim hits
-  map<int, HGCSimDigiSource::Cell> hits;
+  // Steps:
+  // 1. for each cell, sum sim hit energies
+  // 2. convert energies to adc counts
+  // 3. randomly select a pedestal event and add to current event
+  // 4. apply zero suppression
+  // 5. sort cells 
+
+  if ( _entry < debugCount )
+    {
+      cout << endl 
+	   << "    number of sim hits:  " << _simhits->size() << endl;
+    }
+
+  // 1. for each cell, sum sim hit energies
+  map<long, HGCSimDigiSource::Cell> hits;
+
   for(size_t c = 0; c < _simhits->size(); c++)
     {
       HGCSSSimHit& simhit = (*_simhits)[c];
-      double energy = simhit.energy();
       int cellid = simhit.cellid();
-      int layer = simhit.silayer()+1;
-      if ( hits.find(cellid) == hits.end() )
+      int layer  = simhit.silayer()+1;
+      // FIXME: hard code for now
+      int sensor_u = 0;
+      int sensor_v = 0;
+      pair<int, int> uv = _cellmap(cellid);
+      int u = uv.first;
+      int v = uv.second;
+      assert(u > -1000);
+
+      int celltype = _cellmap.celltype(layer,
+				       sensor_u, sensor_v, 
+				       u, v);
+
+      HGCalTBDetId detid(layer, sensor_u, sensor_v, u, v, celltype);
+      uint32_t key = detid.rawId();
+      
+      if ( hits.find(key) == hits.end() )
 	{
+	  // this is a new cell, so initialize its data structure
 	  HGCSimDigiSource::Cell cell;
 	  cell.ADClow = 0;
+	  cell.ADChigh= 0;
 	  cell.TDC    = 0;
 	  cell.energy = 0.0;
 	  cell.layer  = layer;
-
-	  pair<int, int> uv = _cellmap(cellid); 
-	  cell.u = uv.first;
-	  cell.v = uv.second;
-	  assert(cell.u > -1000);
+	  cell.sensor_u = sensor_u;
+	  cell.sensor_v = sensor_v;
+	  cell.u = u;
+	  cell.v = v;
 
 	  pair<double, double> xy =_cellmap.uv2xy(cell.u, cell.v);
 	  cell.x = xy.first;
 	  cell.y = xy.second;
 
-	  // FIXME: for now, hard code sensor_u and sensor_v
-	  cell.sensor_u = 0;
-	  cell.sensor_v = 0;
-	  hits[cellid]  = cell;
-	}	
-      hits[cellid].energy += energy;
+	  pair<int, int> eid = _cellmap.uv2eid(layer,
+					       sensor_u, sensor_v, 
+					       u, v);  
+	  cell.skiroc   = eid.first;
+	  cell.channel  = eid.second;
+	  cell.celltype = celltype;
+	  cell.detid    = detid;
+
+	  hits[key] = cell;
+	}
+
+      // sum energy per cell
+      hits[key].energy += simhit.energy();
     }
 
-  // now map to ADC counts
-  for(map<int, HGCSimDigiSource::Cell>::iterator it=hits.begin();
+  // 2. convert cell energy to ADC counts
+  for(map<long, HGCSimDigiSource::Cell>::iterator it=hits.begin();
       it != hits.end(); it++)
     {
-      int cellid = it->first;
-      HGCSimDigiSource::Cell& cell = hits[cellid];
+      uint32_t key  = it->first;
+      double energy = hits[key].energy;
+      uint16_t adc  = static_cast<uint16_t>(_adcpermip*_mippermev*energy);
+      hits[key].ADChigh = adc;
+    }
 
-      cell.ADChigh = static_cast<uint16_t>(_adcpermev*cell.energy);
+  // 3. add noise
+  // randomly select a pedestal event and add to current
+  // event, cell by cell
+  if ( _noisechain )
+    {
+      int index = _random.Integer(_noiseentries-1);
+      map<uint32_t, uint16_t>& noise = _noise[index];
+      for(map<uint32_t, uint16_t>::iterator it=noise.begin(); 
+	  it != noise.end(); it++)
+	{
+	  uint32_t key = it->first; // this is the rawId
+	  uint16_t adc = it->second; 
+	  if ( hits.find(key) != hits.end() )
+	    hits[key].ADChigh += adc;
+	  else
+	    {
+	      // this is a new cell with no signal count, only noise
+	      HGCalTBDetId detid(key);
+	      HGCSimDigiSource::Cell cell;
+	      cell.ADClow = 0;
+	      cell.ADChigh= adc;
+	      cell.TDC    = 0;
+	      cell.energy = 0.0;
+	      cell.layer    = detid.layer();
+	      cell.sensor_u = detid.sensorIU();
+	      cell.sensor_v = detid.sensorIV();
+	      cell.u        = detid.iu();
+	      cell.v        = detid.iv();
+	      cell.celltype = detid.cellType();
+	      cell.detid    = detid;
 
-      // now add noise
-      addNoise(cell.ADChigh);
+	      pair<int, int> eid = _cellmap.uv2eid(cell.layer,
+						   cell.sensor_u, 
+						   cell.sensor_v, 
+						   cell.u, 
+						   cell.v);  
+	      cell.skiroc   = eid.first;
+	      cell.channel  = eid.second;
 
+	      pair<double, double> xy =_cellmap.uv2xy(cell.u, cell.v);
+	      cell.x = xy.first;
+	      cell.y = xy.second;
+
+	      hits[key] = cell;
+	    }
+	}
+    }
+
+  // 4. apply zero suppression
+  for(map<long, HGCSimDigiSource::Cell>::iterator it=hits.begin();
+      it != hits.end(); it++)
+    {
+      long key = it->first;
+      HGCSimDigiSource::Cell& cell = hits[key];
       // apply "zero" suppression
       if ( cell.ADChigh < _minadccount ) continue;
-
-      cell.celltype = _cellmap.celltype(cell.layer,
-					cell.sensor_u, cell.sensor_v, 
-					cell.u, cell.v);
-
-      cell.detid = HGCalTBDetId(cell.layer, 
-				cell.sensor_u, cell.sensor_v, 
-				cell.u, cell.v, 
-				cell.celltype);
-
-      // map to SKIROC and channel id numbers
-      pair<int, int> eid = _cellmap.uv2eid(cell.layer,
-					   cell.sensor_u, cell.sensor_v, 
-					   cell.u, cell.v);
-  
-      cell.skiroc = eid.first;
-      cell.channel= eid.second;
       channels.push_back(cell); 
     }
 
-  // sort so that SKIROC 2 comes before SKIROC 1
+  // 5. sort so that SKIROC 2 comes before SKIROC 1
   // and channels increase monotonically
   sort(channels.begin(), channels.end());
-}
-
-// TODO
-void HGCSimDigiSource::addNoise(uint16_t& /** adc*/)
-{
 }
 
 void HGCSimDigiSource::fillDescriptions
@@ -221,8 +378,10 @@ void HGCSimDigiSource::fillDescriptions
   desc.addUntracked<int>("runNumber", 101);
   desc.addUntracked<int>("maxEvents", -1);
   desc.addUntracked<int>("minADCCount", 1);
-  desc.addUntracked<double>("ADCperMeV", 182.5);
+  desc.addUntracked<double>("ADCperMIP", 8.2);
+  desc.addUntracked<double>("MIPperMeV", 18.25);
   desc.addUntracked<std::vector<std::string> >("fileNames");
+  desc.addUntracked<std::vector<std::string> >("noiseFileNames");
   descriptions.add("source", desc);
 }
 

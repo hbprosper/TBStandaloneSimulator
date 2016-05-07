@@ -1,6 +1,7 @@
 # ---------------------------------------------------------------------------
-# Read sim "digis" from sim root file and store in them in edm::Events 
-# together with SKIROC2DataFrames made from the sim "digis" (HGCSSRecoHits)
+# Read sim hits from sim root file and store in them in edm::Events 
+# together with SKIROC2DataFrames
+# Created April 2016 HBP 
 # ---------------------------------------------------------------------------
 import FWCore.ParameterSet.Config as cms
 
@@ -9,25 +10,41 @@ processName = "HGC"
 process = cms.Process(processName)
 
 process.load('FWCore.MessageService.MessageLogger_cfi')
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
-# read file names from filelist
+# -------------------------------------------------
+# read file names from filelist and noise_filelist
+# -------------------------------------------------
 from string import strip
+import os, sys
+
+if not os.path.exists("filelist"):
+    sys.exit("** filelist NOT FOUND")
 filelist = map(lambda x: "file:%s" % x, 
               map(strip, open("filelist").readlines()))
 
+# read file names from noise filelist
+if not os.path.exists("noise_filelist"):
+    print "** noise_filelist NOT FOUND - creating an empty file"
+    os.system('echo "" > noise_filelist')
+noisefilelist = map(lambda x: "file:%s" % x, 
+                    map(strip, open("noise_filelist").readlines()))
+
+# -------------------------------------------------
 process.source = cms.Source ("HGCSimDigiSource",
                              runNumber  = cms.untracked.int32(101),
                              maxEvents  = cms.untracked.int32(-1),
                              minADCCount= cms.untracked.int32(1),
-                             ADCperMeV  = cms.untracked.double(182.5),
-                             fileNames  = cms.untracked.vstring(filelist)
+                             ADCperMIP  = cms.untracked.double(8.2),
+                             MIPperMeV  = cms.untracked.double(18.25),
+                             fileNames  = cms.untracked.vstring(filelist),
+                             noiseFileNames = 
+                             cms.untracked.vstring(noisefilelist)
                              )
-
-process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("HGC_Electrons_32GeV_2016_04_sim-v2.root")
+                               ("HGC_Electrons_32GeV_2016_04_sim-v2.0.root")
                                )
 
 process.outpath = cms.EndPath(process.out)
