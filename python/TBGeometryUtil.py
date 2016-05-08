@@ -196,6 +196,15 @@ def createGeometry(geometry="TBGeometry_2016_04"):
             'geometry' : geometry, 
             'sensitive': sensitive}
 #------------------------------------------------------------------------------
+def divideCanvas(nlayers, canvas):
+    n = int(sqrt(nlayers+1))
+    xdiv = n
+    ydiv = n
+    if xdiv*ydiv < nlayers: ydiv += 1
+    nplots = min(xdiv*ydiv, nlayers)
+    canvas.Divide(xdiv, ydiv)
+    return nplots    
+#------------------------------------------------------------------------------
 def main():
     # get test beam geometry
     geom, sensitive  = createGeometry(geometry="TBGeometry_2016_04")
