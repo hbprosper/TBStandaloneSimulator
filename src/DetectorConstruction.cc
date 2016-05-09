@@ -318,14 +318,15 @@ void DetectorConstruction::buildSectorStack()
   G4cout << "== buildSectorStack == " << G4endl;
   G4cout << "number of sections: " << m_caloStruct.size() 
 	 << G4endl;
-  
+
   for(size_t i=0; i < m_caloStruct.size(); i++)
     {
       G4cout << "  ==> section: " << i << G4endl;
       const size_t nEle = m_caloStruct[i].n_elements;
       G4cout << "  number of elements/section: " << nEle << G4endl;
       
-      //index for counting sensitive elements
+
+      //index for counting sensitive elements/section
       int idx = 0;
 
       // loop over elements of current section

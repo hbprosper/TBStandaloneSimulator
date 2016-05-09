@@ -227,7 +227,7 @@ void EventAction::EndOfEventAction(const G4Event* g4evt)
 	     ++iSiHit)
 	  {
 	    G4SiHit lSiHit = section.getSiHitVec(idx)[iSiHit];
-	    HGCSSSimHit lHit(lSiHit,idx,is_scint 
+	    HGCSSSimHit lHit(lSiHit, section.sens_layer[idx], is_scint 
 			     ? geomConv_->squareMap() 
 			     : geomConv_->hexagonMap());
 	  

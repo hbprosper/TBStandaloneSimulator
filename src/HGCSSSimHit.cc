@@ -26,6 +26,9 @@ HGCSSSimHit::HGCSSSimHit(const G4SiHit & aSiHit,
   //cellid encoding:
   cellid_ = map->FindBin(x,y);
 
+  //std::cout << "aSiHit.layer = " << aSiHit.layer
+  //	    << " asilayer = " << asilayer
+  //	    << std::endl;
 
   nGammas_= 0;
   nElectrons_ = 0;

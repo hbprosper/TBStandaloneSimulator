@@ -5,6 +5,8 @@
 
 using namespace std;
 
+int SamplingSection::sens_layer_count = 0;
+
 SamplingSection::SamplingSection(std::vector<TBGeometry::Element>& 
 				 elements_)
   : elements(elements_)
@@ -18,6 +20,7 @@ SamplingSection::SamplingSection(std::vector<TBGeometry::Element>&
   ele_X0.clear();
   ele_L0.clear();
   ele_vol.clear();
+  sens_layer.clear();
   hasScintillator = false;
   n_elements = elements.size();
 
@@ -51,6 +54,8 @@ SamplingSection::SamplingSection(std::vector<TBGeometry::Element>&
 	{
 	  G4SiHitVec lVec;
 	  sens_HitVec.push_back(lVec);
+	  sens_layer.push_back(sens_layer_count);
+	  sens_layer_count++;
 	}
 
       cout << "\tmaterial: " << material

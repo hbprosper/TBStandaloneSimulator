@@ -104,11 +104,16 @@ def computeSquareVertices(side):
 #------------------------------------------------------------------------------
 def createGeometry(geometry="TBGeometry_2016_04"):
     from copy import copy
-    geometry = nameonly(geometry)
+    geometry_module = nameonly(geometry)
     cmd = 'from HGCal.TBStandaloneSimulator.%s import  '\
-        'World, Components, Geometry'\
-        % geometry
-    exec(cmd)
+        'World, Components, Geometry' % geometry_module
+    try:
+        exec(cmd)
+    except:
+        try:
+            execfile(geometry)
+        except:
+            sys.exit('unable to import %s' % geometry)
 
     tprev = 0.0
     layer = 0

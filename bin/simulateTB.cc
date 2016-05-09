@@ -31,19 +31,19 @@ int main(int argc,char** argv)
 		<< "  simulateTB <macro file> <geometry file>" 
 		<< std::endl
 		<< std::endl
-		<< "OR supply a config file with a n extension other than .mac" 
+		<< "           OR" 
 		<< std::endl
 		<< std::endl
 		<< "  simulateTB " << "\x1b[1;31;48m<config file>\x1b[0m" 
 		<< std::endl
 		<< std::endl
-		<< "  containing the keyword/value pairs:"
+		<< "  where the config file contains the keyword/value pairs:"
 		<< std::endl
 		<< "     macro       <macro file>"
 		<< std::endl
 		<< "     geometry    <geometry file>"
 		<< std::endl
-		<< "     savetracks  true|false"    
+		<< "     savetracks  0|1"    
 		<< std::endl;
       exit(0);
     }
@@ -59,7 +59,8 @@ int main(int argc,char** argv)
       if ( argc < 3 )
 	{
 	  std::cout << "Usage: " << std::endl
-		    << "  simulateTB " << macroFile << " <geometry file>" 
+		    << "  simulateTB " << macroFile 
+		    << " \x1b[1;31;48m<geometry file>\x1b[0m" 
 		    << std::endl;
 	    exit(0);
 	}
@@ -67,6 +68,7 @@ int main(int argc,char** argv)
       geomFile = gSystem->ExpandPathName(argv[2]); 
       config.macro = macroFile;
       config.geometry = geomFile;
+      config.savetracks = 0;
     }
   else
     {

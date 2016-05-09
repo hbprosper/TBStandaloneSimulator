@@ -145,6 +145,9 @@ public:
   std::vector<G4SiHitVec> sens_HitVec;
   unsigned sens_HitVec_size_max;
   bool hasScintillator;
+  std::vector<G4int> sens_layer;
+
+  static G4int sens_layer_count;
 };
 
 #endif

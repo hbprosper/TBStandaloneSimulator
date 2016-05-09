@@ -15,7 +15,7 @@
 using namespace std;
 
 namespace {
-  const size_t debugCount=5;
+  const size_t debugCount=1;
 };
 
 HGCSimDigiSource::HGCSimDigiSource
@@ -88,8 +88,8 @@ HGCSimDigiSource::HGCSimDigiSource
       _noiseentries = _noisechain->GetEntries(); 
 
       // map input tree to object pointers
-      vector<long>* vkey=0;
-      vector<unsigned short>* vadc=0;
+      vector<uint32_t>* vkey=0;
+      vector<uint16_t>* vadc=0;
       _noisetree = (TTree*)_noisechain;
       _noisetree->SetBranchAddress("vkey", &vkey);
       _noisetree->SetBranchAddress("vadc", &vadc);
@@ -107,7 +107,8 @@ HGCSimDigiSource::HGCSimDigiSource
 	  long localentry = _noisechain->LoadTree(entry);
 	  _noisetree->GetEntry(localentry);
 	  _noise.push_back(map<uint32_t, uint16_t>());
-	  if ( entry % 500 == 0 ) cout << entry << endl;
+	  if ( entry % 500 == 0 ) 
+	    cout << entry << "\t" << vkey->size() << endl;
 
 	  for(size_t c=0; c < vkey->size(); c++)
 	    {
@@ -241,7 +242,7 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
     }
 
   // 1. for each cell, sum sim hit energies
-  map<long, HGCSimDigiSource::Cell> hits;
+  map<uint32_t, HGCSimDigiSource::Cell> hits;
 
   for(size_t c = 0; c < _simhits->size(); c++)
     {
@@ -297,7 +298,7 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
     }
 
   // 2. convert cell energy to ADC counts
-  for(map<long, HGCSimDigiSource::Cell>::iterator it=hits.begin();
+  for(map<uint32_t, HGCSimDigiSource::Cell>::iterator it=hits.begin();
       it != hits.end(); it++)
     {
       uint32_t key  = it->first;
@@ -355,7 +356,7 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
     }
 
   // 4. apply zero suppression
-  for(map<long, HGCSimDigiSource::Cell>::iterator it=hits.begin();
+  for(map<uint32_t, HGCSimDigiSource::Cell>::iterator it=hits.begin();
       it != hits.end(); it++)
     {
       long key = it->first;
