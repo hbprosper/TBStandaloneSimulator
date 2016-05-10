@@ -133,6 +133,7 @@ Usage:
     a1 = 0.0
     a2 = 0.0
     nn = 0
+    pedestals = {}
     for entry in xrange(entries):
         # load pedestal data into memory
         reader.read(entry)
@@ -161,6 +162,11 @@ Usage:
                 print ii, key
                 sys.exit()
             keymap[key] = layer
+            if not pedestals.has_key(key):
+                pedestals[key] = [0.0, 0.0, 0]
+            pedestals[key][0] += float(adc)
+            pedestals[key][1] += float(adc*adc)
+            pedestals[key][2] += 1
 
             # histogram channel data
             sen_u = detid.sensorIU()
@@ -220,6 +226,11 @@ Usage:
                     print layer, sen_u, sen_v, u, v, celltype
                     sys.exit()
                 keymap[key] = layer
+                if not pedestals.has_key(key):
+                    pedestals[key] = [0.0, 0.0, 0]
+                pedestals[key][0] += float(adc)
+                pedestals[key][1] += float(adc*adc)
+                pedestals[key][2] += 1
 
         hfile.cd()
         tree.Fill()
@@ -236,7 +247,29 @@ Usage:
 
             canvas.Update()
 
+    # write pedestals to text file
     from math import sqrt
+    txtfilename = replace(filename, ".root", ".txt") 
+    outxt = open(txtfilename, "w")
+
+    record = "%6s %6s %6s %6s %6s %8s %8s" % \
+        ( "layer",  "sens_u",  "sens_v",  "u",  "v",  "pedestal",  "stdev")
+    outxt.write("%s\n" % record)
+    keys  = pedestals.keys()
+    for key in keys:
+        x1 = pedestals[key][0]
+        x2 = pedestals[key][1]
+        n  = pedestals[key][2]
+        x1/= n
+        x2/= n
+        x2 = sqrt(x2-x1*x1)
+        detid  = HGCalTBDetId(key)
+        record = "%6d %6d %6d %6d %6d %8.2f %8.2f" % \
+            (detid.layer(), detid.sensorIU(), detid.sensorIV(),
+             detid.iu(), detid.iv(), x1, x2)
+        outxt.write("%s\n" % record)
+    outxt.close()
+
     a1 /= nn
     a2 /= nn
     a2 = sqrt(a2-a1*a1)

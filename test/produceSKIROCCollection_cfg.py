@@ -18,18 +18,17 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 100
 from string import strip
 import os, sys
 
-if not os.path.exists("filelist"):
-    sys.exit("** filelist NOT FOUND")
 filelist = map(lambda x: "file:%s" % x, 
-              map(strip, open("filelist").readlines()))
+               filter(lambda x: len(x) > 0 and x[0] != "#",
+                      map(strip, open("filelist").readlines())))
 
-# read file names from noise filelist
+# read file names from the noise filelist
 if not os.path.exists("noise_filelist"):
     print "** noise_filelist NOT FOUND - creating an empty file"
-    os.system('echo "" > noise_filelist')
+    os.system('echo "#" > noise_filelist')
 noisefilelist = map(lambda x: "file:%s" % x, 
-                    map(strip, open("noise_filelist").readlines()))
-
+                    filter(lambda x: len(x) > 0 and x[0] != "#",
+                           map(strip, open("noise_filelist").readlines())))
 # -------------------------------------------------
 process.source = cms.Source ("HGCSimDigiSource",
                              runNumber  = cms.untracked.int32(101),

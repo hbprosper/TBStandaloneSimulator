@@ -25,60 +25,25 @@ int main(int argc,char** argv)
   hack = argc;
   argc = hack;
 
-  if ( argc < 2 )
+  if ( argc < 3 )
     {
       std::cout << "Usage: " << std::endl
-		<< "  simulateTB <macro file> <geometry file>" 
-		<< std::endl
-		<< std::endl
-		<< "           OR" 
-		<< std::endl
-		<< std::endl
-		<< "  simulateTB " << "\x1b[1;31;48m<config file>\x1b[0m" 
-		<< std::endl
-		<< std::endl
-		<< "  where the config file contains the keyword/value pairs:"
-		<< std::endl
-		<< "     macro       <macro file>"
-		<< std::endl
-		<< "     geometry    <geometry file>"
-		<< std::endl
-		<< "     savetracks  0|1"    
+		<< "  simulateTB \x1b[1;31;48m<geometry file>\x1b[0m" 
+		<< " \x1b[1;32;48m<macro file>\x1b[0m"  
 		<< std::endl;
       exit(0);
     }
 
-  G4String macroFile = gSystem->ExpandPathName(argv[1]);
-  G4String geomFile("");
+  G4String geomFile  = gSystem->ExpandPathName(argv[1]);
+  G4String macroFile = gSystem->ExpandPathName(argv[2]);
   TBConfig config;
-
-  // check if the first file is a macro file.
-  // if it is, we need another argument
-  if ( TString(macroFile.c_str()).EndsWith(".mac") )
-    {
-      if ( argc < 3 )
-	{
-	  std::cout << "Usage: " << std::endl
-		    << "  simulateTB " << macroFile 
-		    << " \x1b[1;31;48m<geometry file>\x1b[0m" 
-		    << std::endl;
-	    exit(0);
-	}
-      // Geometry config file
-      geomFile = gSystem->ExpandPathName(argv[2]); 
-      config.macro = macroFile;
-      config.geometry = geomFile;
-      config.savetracks = 0;
-    }
+  config.macro = macroFile;
+  config.geometry = geomFile;
+  if ( argc > 3 )
+    config.savetracks = atoi(argv[3]);
   else
-    {
-      // Assume this is a config file
-      config = TBConfig(macroFile);
-    }
+    config.savetracks = 0;
   G4cout << config << G4endl;
-
-  macroFile = config.macro;
-  geomFile  = config.geometry;
 
   TBGeometry geometry(geomFile);
 
