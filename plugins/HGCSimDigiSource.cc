@@ -24,8 +24,7 @@ HGCSimDigiSource::HGCSimDigiSource
      _run(pset.getUntrackedParameter<int>("runNumber", 101)),
      _maxevents(pset.getUntrackedParameter<int>("maxEvents", -1)),
      _minadccount(pset.getUntrackedParameter<int>("minADCCount", 1)),
-     _adcpermip(pset.getUntrackedParameter<double>("ADCperMIP", 8.2)),
-     _mippermev(pset.getUntrackedParameter<double>("MIPperMeV", 18.25)),
+     _adcpermev(pset.getUntrackedParameter<double>("ADCperMeV", 200)),
      _filenames(pset.getUntrackedParameter<vector<string> >
 		("fileNames")),
      _noisefilenames(pset.getUntrackedParameter<vector<string> >
@@ -303,7 +302,7 @@ void HGCSimDigiSource::digitize(std::vector<HGCSimDigiSource::Cell>& channels)
     {
       uint32_t key  = it->first;
       double energy = hits[key].energy;
-      uint16_t adc  = static_cast<uint16_t>(_adcpermip*_mippermev*energy);
+      uint16_t adc  = static_cast<uint16_t>(_adcpermev*energy);
       hits[key].ADChigh = adc;
     }
 
@@ -379,8 +378,7 @@ void HGCSimDigiSource::fillDescriptions
   desc.addUntracked<int>("runNumber", 101);
   desc.addUntracked<int>("maxEvents", -1);
   desc.addUntracked<int>("minADCCount", 1);
-  desc.addUntracked<double>("ADCperMIP", 8.2);
-  desc.addUntracked<double>("MIPperMeV", 18.25);
+  desc.addUntracked<double>("ADCperMeV", 200);
   desc.addUntracked<std::vector<std::string> >("fileNames");
   desc.addUntracked<std::vector<std::string> >("noiseFileNames");
   descriptions.add("source", desc);

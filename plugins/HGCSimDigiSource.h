@@ -76,8 +76,7 @@ private:
   int _run;
   int _maxevents;
   int _minadccount;
-  double _adcpermip;
-  double _mippermev;
+  double _adcpermev;
   std::vector<std::string> _filenames;       ///<name of input sim files
   std::vector<std::string> _noisefilenames;  ///<name of input pedestal files
 

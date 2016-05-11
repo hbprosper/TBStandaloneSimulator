@@ -34,8 +34,7 @@ process.source = cms.Source ("HGCSimDigiSource",
                              runNumber  = cms.untracked.int32(101),
                              maxEvents  = cms.untracked.int32(-1),
                              minADCCount= cms.untracked.int32(1),
-                             ADCperMIP  = cms.untracked.double(8.2),
-                             MIPperMeV  = cms.untracked.double(18.25),
+                             ADCperMeV  = cms.untracked.double(200),
                              fileNames  = cms.untracked.vstring(filelist),
                              noiseFileNames = 
                              cms.untracked.vstring(noisefilelist)
@@ -43,7 +42,7 @@ process.source = cms.Source ("HGCSimDigiSource",
 
 process.out = cms.OutputModule("PoolOutputModule",
                                fileName = cms.untracked.string
-                               ("HGC_Electrons_32GeV_2016_04_sim-v2.0.root")
+                               ("HGC_Electrons_32GeV_2016_04_sim.root")
                                )
 
 process.outpath = cms.EndPath(process.out)
