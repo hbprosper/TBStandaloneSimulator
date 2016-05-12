@@ -62,13 +62,11 @@ If a digitized events with noise are required, first create a noise file
 from a pedestal run as in the following example
 ```linux
 writePedestal.py HGC_Pedestals_2016_04_8272.root
-filelist
 ```
 This will create the files
 ```linux
 HGC_Pedestals_2016_04_8272_Noise.root
 HGC_Pedestals_2016_04_8272.txt
-filelist
 ```
 The first is a root file containing the noise to be added to the simulated 
 digitized hits and the second is a text file containing the pedestals. In order
