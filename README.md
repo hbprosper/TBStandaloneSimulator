@@ -1,5 +1,11 @@
 # TBStandaloneSimulator
-Temporary home of test beam stand alone simulator (at least a piece of it!). This has been tested with CMSSW_8_0_1, slc6_amd64_gcc493, running within a CERNVM virtual machine on a mac. It should work on lxplus and cmslpc-sl6.
+A simple standalone simulator (a revamped version of the code developed
+by Anne-Marie Magnan), whicn is intended for quick approximate studies. 
+Use the CMSSW test beam simulator for more sophisticated simulations. 
+
+The code has been tested with CMSSW_8_0_6, 
+slc6_amd64_gcc530, running within a CERNVM virtual machine on a mac. 
+It should work on lxplus and cmslpc-sl6.
 
 # Installation
 ```linux
@@ -10,29 +16,11 @@ Temporary home of test beam stand alone simulator (at least a piece of it!). Thi
   scram b
   scram b (do scram b a second time, if the first fails)
 ```
-# Running producer
-```linux
-  cd test
-  cmsRun produceSKIROCCollection_cfg.py
-```
-This reads the sim file 
-```linux
-digi_32GeV_electrons.root 
-```
-and copies its HGCSSRecoHit objects from to edm::Events, and creates and saves SKIROC dataframe objects to the same edm::Events. You should see the output
-```linux
-HGCal_digi_32GeV_electrons.root 
-```
-The list of input files to be read should be given in the file 
-```linux
-filelist
-```
-one file per line. 
-
 # Running the simulator
-The simulator and digitizer executables are called simulateTB and digitizeTB, respectively. To simulate, and visualize, a couple of 32 GeV electron events, do
+The simulator is called simulateTB. To simulate a couple of 32 GeV electron 
+events, do
 ```linux
-simulateTB withvis.mac
+simulateTB geometry_1layer.py withvis.mac
 ```
 which creates the files
 ```linux
@@ -40,6 +28,58 @@ PFcal.root
 g4_00.wrl
 g4_01.wrl
 ```
-The Root file contains the results of simulation, while the second and third
-files are files that can be rendered using a VRML browser.
+The Root file contains the results of the simulation, while the second and third
+files contain graphical data that can be rendered using a VRML browser, 
+such as freewrl.
+
+To simulate 1000 32 GeV electrons events (without visualization) for a 1-layer
+detector (like that investigated in the March 2016 test beam) do
+```linux
+simulateTB geometry_1layer.py gun.mac
+```
+which creates the file
+```linux
+PFcal.root
+```
+
+# Running producer (to create SKIROC2DataFrames)
+```linux
+  cd test
+  cmsRun produceSKIROCCollection_cfg.py
+```
+This reads the sim file 
+```linux
+PFcal.root 
+```
+and creates and saves SKIROC dataframe objects to edm::Events. You 
+should see the output file
+```linux
+HGC_Electrons_32GeV_2016_04_sim.root 
+```
+which can be analyzed in the same way as real test beam data.
+
+If a digitized events with noise are required, first create a noise file
+from a pedestal run as in the following example
+```linux
+writePedestal.py HGC_Pedestals_2016_04_8272.root
+filelist
+```
+This will create the files
+```linux
+HGC_Pedestals_2016_04_8272_Noise.root
+HGC_Pedestals_2016_04_8272.txt
+filelist
+```
+The first is a root file containing the noise to be added to the simulated 
+digitized hits and the second is a text file containing the pedestals. In order
+to activate the noise model during digitization, create the file noise_filelist
+with the file name of the root file containing the noise data,
+```linux
+echo HGC_Pedestals_2016_04_8272_Noise.root > noise_filelist
+```
+then do
+```linux
+  cmsRun produceSKIROCCollection_cfg.py
+```
+
 

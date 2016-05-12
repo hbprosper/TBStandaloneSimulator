@@ -103,7 +103,24 @@ Usage:
     reader   = TBFileReader(filename)
     entries  = reader.entries()
 
+    # cache pedestal data in memory
+    entries= min(2000, entries)
+    cache = []
+    print "loading pedestal data into memory"
+    for entry in xrange(entries):
+        reader.read(entry)
+        skiroc = reader("SKIROC2DataFrame")
+        if skiroc == None: sys.exit("\n** cannot find skiroc collection\n")
+        digis = []
+        for ii in xrange(skiroc.size()):
+            digi  = SKIROC2DataFrame(skiroc[ii])
+            digis.append(digi)
+        cache.append(digis)
+        if entry % 100 == 0: print entry
+
+    # -----------------------------------------------
     # create output noise file
+    # -----------------------------------------------
     outfilename = replace(filename, ".root", "_Noise.root") 
     hfile= TFile(outfilename, "recreate")
     hfile.cd()
@@ -127,30 +144,18 @@ Usage:
     hchan2 = mkhist1("c2", "channel", "", 128, 0, 128)
     hadc   = mkhist1("ADC distribution",   "ADC count", "", 200, 0, 2500)
     
-
-    # loop over pedestal events
-    entries= min(2000, entries)
-    a1 = 0.0
-    a2 = 0.0
-    nn = 0
+    # -----------------------------------------------
+    # write out pedestal data in a convenient format
+    print "writing noise data to file" 
     pedestals = {}
-    for entry in xrange(entries):
-        # load pedestal data into memory
-        reader.read(entry)
-        skiroc = reader("SKIROC2DataFrame")
-        if skiroc == None: sys.exit("\n** cannot find skiroc collection\n")
-
+    for entry, digis in enumerate(cache):
         vkey.clear()
         vadc.clear()
 
         checklayers = {}  # this will be used to determine missing layers
         keymap = {}       # this will be used to check for duplicate cells
-        for ii in xrange(skiroc.size()):
-            digi  = SKIROC2DataFrame(skiroc[ii])
+        for digi in digis:
             adc   = digi[0].adcHigh()
-            a1 += adc
-            a2 += adc*adc
-            nn += 1
             detid = digi.detid()
             key   = detid.rawId()
             vkey.push_back(key)
@@ -162,24 +167,24 @@ Usage:
                 print ii, key
                 sys.exit()
             keymap[key] = layer
-            if not pedestals.has_key(key):
-                pedestals[key] = [0.0, 0.0, 0]
+            if not pedestals.has_key(key): pedestals[key] = [0.0, 0.0, 0]
             pedestals[key][0] += float(adc)
             pedestals[key][1] += float(adc*adc)
             pedestals[key][2] += 1
 
             # histogram channel data
-            sen_u = detid.sensorIU()
-            sen_v = detid.sensorIV()
-            u     = detid.iu()
-            v     = detid.iv()
-            eid   = cellmap.uv2eid(layer, sen_u, sen_v, u, v)
-            ski   = eid.first
-            chan  = eid.second
-            binid = 64*(ski-1) + chan 
-            hchan.Fill(binid+0.5, adc)
-            hchan2.Fill(binid+0.5)
-            hadc.Fill(adc)
+            if layer == 1:
+                sen_u = detid.sensorIU()
+                sen_v = detid.sensorIV()
+                u     = detid.iu()
+                v     = detid.iv()
+                eid   = cellmap.uv2eid(layer, sen_u, sen_v, u, v)
+                ski   = eid.first
+                chan  = eid.second
+                binid = 64*(ski-1) + chan 
+                hchan.Fill(binid+0.5, adc)
+                hchan2.Fill(binid+0.5)
+                hadc.Fill(adc)
 
 
         # check that we have noise for all layers
@@ -191,14 +196,11 @@ Usage:
         # if we have missing layers, use noise
         # from randomly selected events to model noise
         # for those layers.
+        data = {}  # will contain pedestal data for randomly selected event
         for layer in missinglayers:
-            ientry = random.Integer(entries-1)
-            reader.read(ientry)
-            skiroc = reader("SKIROC2DataFrame")
-            if skiroc == None: sys.exit("\n** cannot find skiroc collection\n")
-            data = {}
-            for ii in xrange(skiroc.size()):
-                digi  = SKIROC2DataFrame(skiroc[ii])
+            ientry = random.Integer(len(cache)-1)
+            digis  = cache[ientry]
+            for digi in digis:
                 adc   = digi[0].adcHigh()
                 detid = digi.detid()
                 u     = detid.iu()
@@ -226,8 +228,7 @@ Usage:
                     print layer, sen_u, sen_v, u, v, celltype
                     sys.exit()
                 keymap[key] = layer
-                if not pedestals.has_key(key):
-                    pedestals[key] = [0.0, 0.0, 0]
+                if not pedestals.has_key(key): pedestals[key] = [0.0, 0.0, 0]
                 pedestals[key][0] += float(adc)
                 pedestals[key][1] += float(adc*adc)
                 pedestals[key][2] += 1
@@ -269,11 +270,6 @@ Usage:
              detid.iu(), detid.iv(), x1, x2)
         outxt.write("%s\n" % record)
     outxt.close()
-
-    a1 /= nn
-    a2 /= nn
-    a2 = sqrt(a2-a1*a1)
-    print "\n==> pedestal = %8.1f +/-%-8.1f ADC counts\n" % (a1, a2)
 
     canvas.cd(1)
     hchan.Divide(hchan2)

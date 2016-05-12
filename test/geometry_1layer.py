@@ -30,9 +30,6 @@
 #
 # This specifies the geometry, which is built from components and 
 # composite components. The latter is a (Python) list of components.
-#
-# WARNING: Be careful about the placement of commas! It is easy to leave one
-# out and confuse Python.
 #--------------------------------------------------------------------------
 Components = {'W21': {'shape': 'square',   # 2.1mm of W
                       'material': 'W',
